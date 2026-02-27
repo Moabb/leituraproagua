@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POÇÕES - Sistema de Gestão de Água</title>
+    <style>
+        :root { --azul: #1f538d; --verde: #28a745; --cinza-bg: #F2F2F2; --texto: #333; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--cinza-bg); margin: 0; padding: 0; color: var(--texto); line-height: 1.6; }
+        
+        /* CABEÇALHO COM BOTÕES NO TOPO */
+        header { background: var(--azul); color: white; padding: 30px 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        header h1 { margin: 0; font-size: 32px; letter-spacing: 1px; }
+        header p { margin: 5px 0 20px; opacity: 0.9; font-size: 18px; }
+
+        .nav-topo { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        
+        /* BOTÕES */
+        .btn { display: inline-block; text-decoration: none; padding: 14px 25px; font-weight: bold; border-radius: 50px; transition: 0.3s; cursor: pointer; border: none; font-size: 15px; text-transform: uppercase; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-azul { background: white; color: var(--azul); }
+        .btn-azul:hover { background: #e0e0e0; transform: translateY(-2px); }
+        .btn-verde { background: var(--verde); color: white; }
+        .btn-verde:hover { background: #218838; transform: translateY(-2px); }
+
+        /* SEÇÃO DE RECURSOS */
+        .hero { text-align: center; margin-bottom: 50px; }
+        .hero h2 { color: var(--azul); font-size: 32px; }
+
+        .recursos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
+        .recurso-card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; }
+        .recurso-card h3 { color: var(--azul); margin-top: 0; border-bottom: 2px solid var(--cinza-bg); padding-bottom: 10px; }
+        .recurso-card p { font-size: 14px; color: #555; height: 60px; }
+        .recurso-card img { width: 100%; border-radius: 10px; margin-top: 15px; border: 1px solid #eee; transition: 0.5s; }
+        .recurso-card img:hover { transform: scale(1.03); }
+
+        footer { text-align: center; padding: 40px; color: #888; font-size: 13px; }
+
+        @media (max-width: 600px) {
+            header h1 { font-size: 24px; }
+            .btn { width: 90%; margin: 5px 0; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>POÇÕES PRO ÁGUA</h1>
+    <p>Tecnologia a serviço da sua comunidade.</p>
+    
+    <div class="nav-topo">
+        <a class="btn btn-verde" href="(LINK_DO_SEU_APP_WEB)">🚀 ACESSAR APP LEITURISTA</a>
+        <a class="btn btn-azul" href="https://wa.me/(SEU_NUMERO)">💬 SUPORTE WHATSAPP</a>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="hero">
+        <h2>Gestão Completa e Transparente</h2>
+        <p>Desenvolvido para facilitar a leitura de hidrômetros e a emissão de faturas, eliminando erros e papelada.</p>
+    </div>
+
+    <div class="recursos">
+        <div class="recurso-card">
+            <h3>Gestão no PC</h3>
+            <p>Controle de clientes e geração de faturas em PDF profissionais com um clique.</p>
+            <img src="https://via.placeholder.com/400x250?text=Interface+do+PC" alt="Sistema PC">
+        </div>
+        
+        <div class="recurso-card">
+            <h3>Leitura Offline</h3>
+            <p>O leiturista trabalha mesmo sem internet. Os dados são salvos e sincronizados depois.</p>
+            <img src="https://via.placeholder.com/400x250?text=App+Mobile+Offline" alt="App Mobile">
+        </div>
+        
+        <div class="recurso-card">
+            <h3>Faturas Claras</h3>
+            <p>Cálculo automático de consumo, tarifa fixa e histórico de leituras anteriores.</p>
+            <img src="https://via.placeholder.com/400x250?text=Exemplo+de+Fatura" alt="Fatura PDF">
+        </div>
+    </div>
+
+</div>
+
+<footer>
+    &copy; 2026 Poções Pro Água - Todos os direitos reservados.
+</footer>
+
+</body>
+</html>
