@@ -114,16 +114,45 @@
             const dados = await r.json();
             const corpo = document.getElementById('tabela-corpo');
             corpo.innerHTML = "";
-
+        
             if(!dados) return;
-
+        
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0); // Zera as horas para comparação justa
+        
             for (let id_key in dados) {
                 const item = dados[id_key];
                 const ativo = item.ativo === true || item.ativo === "true";
                 
+                // --- LÓGICA DE ALERTA DE VENCIMENTO ---
+                let avisoVencimento = "";
+                let estiloLinha = "";
+                
+                if (item.expiracao) {
+                    // Converte a data do formato DD/MM/AAAA para objeto Date
+                    const partes = item.expiracao.split("/");
+                    const dataExp = new Date(partes[2], partes[1] - 1, partes[0]);
+                    
+                    // Calcula a diferença em dias
+                    const diffTempo = dataExp - hoje;
+                    const diffDias = Math.ceil(diffTempo / (1000 * 60 * 60 * 24));
+        
+                    if (diffDias <= 0 && ativo) {
+                        avisoVencimento = "<br><small style='color:red'><b>🔴 EXPIRADO HOJE!</b></small>";
+                        estiloLinha = "background-color: #ffebee;"; // Vermelho bem clarinho
+                    } else if (diffDias > 0 && diffDias <= 10) {
+                        avisoVencimento = `<br><small style='color:#856404'><b>⚠️ VENCE EM ${diffDias} DIAS</b></small>`;
+                        estiloLinha = "background-color: #fff3cd;"; // Amarelo de atenção
+                    }
+                }
+                // --------------------------------------
+        
                 corpo.innerHTML += `
-                    <tr>
-                        <td><strong>${item.nome || '---'}</strong></td>
+                    <tr style="${estiloLinha}">
+                        <td>
+                            <strong>${item.nome || '---'}</strong>
+                            ${avisoVencimento}
+                        </td>
                         <td><code>${id_key}</code></td>
                         <td>${item.expiracao || '---'}</td>
                         <td>
@@ -174,4 +203,5 @@
     </script>
 </body>
 </html>
+
 
