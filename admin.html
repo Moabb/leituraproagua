@@ -88,13 +88,20 @@
                 const r = await fetch(`${URL_BASE}/admin.json`);
                 const admin = await r.json();
 
-                if (admin && admin.usuario === userIn && admin.senha === passIn) {
+                // O .trim() remove espaços vazios antes e depois do texto
+                // Comparamos o que vem do Firebase (admin.senha) com o que você digitou (passIn)
+                if (admin && 
+                    admin.usuario.trim() === userIn && 
+                    admin.senha.trim() === passIn) {
+                    
                     document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('painel').style.display = 'block';
                     carregarDados();
                 } else {
                     msg.style.display = "block";
                     btn.innerText = "ENTRAR";
+                    // Dica extra: limpa o campo de senha se errar
+                    document.getElementById('pass-input').value = ""; 
                 }
             } catch (e) {
                 alert("Erro ao conectar ao banco de dados!");
@@ -167,3 +174,4 @@
     </script>
 </body>
 </html>
+
