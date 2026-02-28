@@ -4,38 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MASTER - Poções Pro Água</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         :root { --azul: #1f538d; --danger: #d32f2f; --success: #388e3c; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 950px; margin: auto; }
+        
+        /* LOGIN SCREEN */
+        #login-screen { position: fixed; inset: 0; background: var(--azul); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-box { background: white; padding: 30px; border-radius: 12px; width: 300px; text-align: center; }
+        
+        /* TABELA E INPUTS */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
         th { background: var(--azul); color: white; }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-right: 5px; }
-        .btn { border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
-        .btn-add { background: var(--azul); }
-        .btn-status { font-size: 11px; }
-        #login-screen { position: fixed; inset: 0; background: var(--azul); display: flex; align-items: center; justify-content: center; z-index: 999; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; width: 90%; }
+        .btn { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; }
+        .btn-add { background: var(--azul); width: 100%; margin-top: 10px; }
+        .btn-status { font-size: 11px; min-width: 80px; }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
-        <div class="card" style="width: 300px; text-align: center;">
-            <h2>ADMIN MASTER</h2>
-            <input type="password" id="input-senha" placeholder="Senha Mestra" style="width: 80%; margin-bottom: 10px;">
-            <button class="btn btn-add" onclick="verificarSenha()" style="width: 88%;">ENTRAR</button>
+        <div class="login-box">
+            <h2 style="color: var(--azul)">Painel Master</h2>
+            <input type="text" id="user-input" placeholder="Usuário">
+            <input type="password" id="pass-input" placeholder="Senha">
+            <button class="btn btn-add" id="btn-entrar" onclick="autenticar()">ENTRAR</button>
+            <p id="msg-erro" style="color:red; font-size: 12px; display:none; margin-top:10px;">Dados incorretos!</p>
         </div>
     </div>
 
     <div id="painel" style="display: none;" class="card">
-        <h2>Gerenciador de Licenças</h2>
-        <div style="margin-bottom: 20px;">
-            <input type="text" id="nome" placeholder="Nome do Cliente">
-            <input type="text" id="id-maquina" placeholder="ID da Máquina">
-            <input type="text" id="expira" placeholder="28/02/2026">
-            <button class="btn btn-add" onclick="salvarLicenca()">CADASTRAR</button>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Gerenciador de Licenças</h2>
+            <button class="btn" style="background:#666" onclick="location.reload()">Sair</button>
+        </div>
+        
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; display: flex; gap: 10px; align-items: flex-end;">
+            <div style="flex: 2">
+                <label style="font-size: 12px; font-weight: bold;">Cliente</label><br>
+                <input type="text" id="nome-cli" placeholder="Ex: HP - João" style="margin-bottom:0">
+            </div>
+            <div style="flex: 2">
+                <label style="font-size: 12px; font-weight: bold;">ID Máquina</label><br>
+                <input type="text" id="id-maquina" placeholder="Ex: -BFEBFBFF..." style="margin-bottom:0">
+            </div>
+            <div style="flex: 1">
+                <label style="font-size: 12px; font-weight: bold;">Expiração</label><br>
+                <input type="text" id="data-exp" placeholder="28/02/2026" style="margin-bottom:0">
+            </div>
+            <div style="flex: 1">
+                <button class="btn btn-add" onclick="salvarLicenca()" style="margin:0">CADASTRAR</button>
+            </div>
         </div>
 
         <table>
@@ -53,29 +74,41 @@
     </div>
 
     <script>
-        // 1. AJUSTE A URL: Deve terminar em /licencas (conforme sua imagem)
-        const URL_BASE = "https://consuma-da-agua-default-rtdb.firebaseio.com/licencas";
-        
-        // 2. SENHA PROTEGIDA: O que você vê abaixo é o hash da senha "998877"
-        // Mesmo inspecionando, ninguém sabe a senha real.
-        const HASH_AUTORIZADO = "70c3f0f7f9859a2993f4e24a4962b1021469e3a7f8b9588669e4695863c0a370";
+        const URL_BASE = "https://consuma-da-agua-default-rtdb.firebaseio.com";
 
-        function verificarSenha() {
-            const senha = document.getElementById('input-senha').value;
-            const hashDigitado = CryptoJS.SHA256(senha).toString();
+        async function autenticar() {
+            const userIn = document.getElementById('user-input').value.trim();
+            const passIn = document.getElementById('pass-input').value.trim();
+            const btn = document.getElementById('btn-entrar');
+            const msg = document.getElementById('msg-erro');
+
+            btn.innerText = "Verificando...";
             
-            if (hashDigitado === HASH_AUTORIZADO) {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('painel').style.display = 'block';
-                carregarDados();
-            } else { alert("Senha Inválida!"); }
+            try {
+                const r = await fetch(`${URL_BASE}/admin.json`);
+                const admin = await r.json();
+
+                if (admin && admin.usuario === userIn && admin.senha === passIn) {
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('painel').style.display = 'block';
+                    carregarDados();
+                } else {
+                    msg.style.display = "block";
+                    btn.innerText = "ENTRAR";
+                }
+            } catch (e) {
+                alert("Erro ao conectar ao banco de dados!");
+                btn.innerText = "ENTRAR";
+            }
         }
 
         async function carregarDados() {
-            const r = await fetch(`${URL_BASE}.json`);
+            const r = await fetch(`${URL_BASE}/licencas.json`);
             const dados = await r.json();
             const corpo = document.getElementById('tabela-corpo');
             corpo.innerHTML = "";
+
+            if(!dados) return;
 
             for (let id_key in dados) {
                 const item = dados[id_key];
@@ -83,7 +116,7 @@
                 
                 corpo.innerHTML += `
                     <tr>
-                        <td>${item.nome || '---'}</td>
+                        <td><strong>${item.nome || '---'}</strong></td>
                         <td><code>${id_key}</code></td>
                         <td>${item.expiracao || '---'}</td>
                         <td>
@@ -93,7 +126,7 @@
                             </button>
                         </td>
                         <td>
-                            <button class="btn" style="background:#666" onclick="excluirLicenca('${id_key}')">Excluir</button>
+                            <button class="btn" style="background:#666; font-size:10px" onclick="excluirLicenca('${id_key}')">Excluir</button>
                         </td>
                     </tr>`;
             }
@@ -101,29 +134,24 @@
 
         async function salvarLicenca() {
             const id = document.getElementById('id-maquina').value.trim();
-            const nomeCli = document.getElementById('nome').value.trim();
-            const dataExp = document.getElementById('expira').value.trim();
+            const nomeCli = document.getElementById('nome-cli').value.trim();
+            const dataExp = document.getElementById('data-exp').value.trim();
 
-            if (!id) return alert("O ID é obrigatório!");
+            if (!id || !nomeCli) return alert("Preencha o Nome e o ID!");
 
-            const payload = {
-                nome: nomeCli,
-                expiracao: dataExp,
-                ativo: true
-            };
-
-            // Usamos PUT para gravar no ID específico sem gerar chaves aleatórias do Firebase
-            await fetch(`${URL_BASE}/${id}.json`, {
+            await fetch(`${URL_BASE}/licencas/${id}.json`, {
                 method: 'PUT',
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ nome: nomeCli, expiracao: dataExp, ativo: true })
             });
 
             alert("Licença Salva!");
+            document.getElementById('id-maquina').value = "";
+            document.getElementById('nome-cli').value = "";
             carregarDados();
         }
 
         async function alternarStatus(id, statusAtual) {
-            await fetch(`${URL_BASE}/${id}.json`, {
+            await fetch(`${URL_BASE}/licencas/${id}.json`, {
                 method: 'PATCH',
                 body: JSON.stringify({ ativo: !statusAtual })
             });
@@ -131,8 +159,8 @@
         }
 
         async function excluirLicenca(id) {
-            if (confirm("Deseja realmente excluir esta licença?")) {
-                await fetch(`${URL_BASE}/${id}.json`, { method: 'DELETE' });
+            if (confirm(`Excluir licença de ${id}?`)) {
+                await fetch(`${URL_BASE}/licencas/${id}.json`, { method: 'DELETE' });
                 carregarDados();
             }
         }
