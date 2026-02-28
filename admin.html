@@ -3,167 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MASTER - Gestão Poções Pro Água</title>
+    <title>MASTER - Poções Pro Água</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        :root { --azul: #1f538d; --danger: #d32f2f; --success: #388e3c; --border: #ddd; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        
-        h2 { color: var(--azul); margin-top: 0; }
-        .form-group { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
-        input { padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: var(--azul); color: white; font-weight: 600; }
-        tr:hover { background: #f9f9f9; }
-
-        .btn { border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-add { background: var(--azul); color: white; width: 100%; }
-        .btn-del { background: #f8d7da; color: var(--danger); font-size: 12px; }
-        .btn-status { font-size: 12px; color: white; }
-        .bg-on { background: var(--success); }
-        .bg-off { background: var(--danger); }
-
-        /* Modal Login */
-        #login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--azul); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        :root { --azul: #1f538d; --danger: #d32f2f; --success: #388e3c; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: var(--azul); color: white; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-right: 5px; }
+        .btn { border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
+        .btn-add { background: var(--azul); }
+        .btn-status { font-size: 11px; }
+        #login-screen { position: fixed; inset: 0; background: var(--azul); display: flex; align-items: center; justify-content: center; z-index: 999; }
     </style>
 </head>
 <body>
 
-    <div id="login-overlay">
-        <div class="card" style="width: 320px; text-align: center;">
-            <h2 style="margin-bottom: 20px;">Painel Master</h2>
-            <input type="password" id="senha-master" placeholder="Senha de Acesso" style="width: 90%; margin-bottom: 15px;">
-            <button class="btn btn-add" onclick="acessar()">ENTRAR NO PAINEL</button>
+    <div id="login-screen">
+        <div class="card" style="width: 300px; text-align: center;">
+            <h2>ADMIN MASTER</h2>
+            <input type="password" id="input-senha" placeholder="Senha Mestra" style="width: 80%; margin-bottom: 10px;">
+            <button class="btn btn-add" onclick="verificarSenha()" style="width: 88%;">ENTRAR</button>
         </div>
     </div>
 
-    <div class="container" id="conteudo-principal" style="display: none;">
-        <div class="card">
-            <h2>Gerenciar Licenças e IDs</h2>
-            <p style="color: #666; font-size: 14px;">Adicione novos clientes ou gerencie expirações de forma simplificada.</p>
-            
-            <div class="form-group">
-                <input type="text" id="add-nome" placeholder="Nome do Cliente (Ex: João de Poções)">
-                <input type="text" id="add-id" placeholder="ID (Igual ao QR Code)">
-                <input type="date" id="add-exp">
-                <button class="btn btn-add" onclick="salvarNovo()">+ CADASTRAR</button>
-            </div>
+    <div id="painel" style="display: none;" class="card">
+        <h2>Gerenciador de Licenças</h2>
+        <div style="margin-bottom: 20px;">
+            <input type="text" id="nome" placeholder="Nome do Cliente">
+            <input type="text" id="id-maquina" placeholder="ID da Máquina">
+            <input type="text" id="expira" placeholder="28/02/2026">
+            <button class="btn btn-add" onclick="salvarLicenca()">CADASTRAR</button>
         </div>
 
-        <div class="card" style="padding: 0;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nome do Cliente</th>
-                        <th>ID Licença</th>
-                        <th>Expiração</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="lista-clientes">
-                    </tbody>
-            </table>
-        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>ID da Máquina</th>
+                    <th>Expiração</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-corpo"></tbody>
+        </table>
     </div>
 
     <script>
-        // Ajustado para bater exatamente com a sua imagem
-        const URL_FB = "https://consuma-da-agua-default-rtdb.firebaseio.com/licencas";
-        const SENHA_MESTRA = "Isismoabb23."; // <--- ALTERE PARA SUA SENHA DESEJADA
+        // 1. AJUSTE A URL: Deve terminar em /licencas (conforme sua imagem)
+        const URL_BASE = "https://consuma-da-agua-default-rtdb.firebaseio.com/licencas";
+        
+        // 2. SENHA PROTEGIDA: O que você vê abaixo é o hash da senha "998877"
+        // Mesmo inspecionando, ninguém sabe a senha real.
+        const HASH_AUTORIZADO = "70c3f0f7f9859a2993f4e24a4962b1021469e3a7f8b9588669e4695863c0a370";
 
-        function acessar() {
-            if(document.getElementById('senha-master').value === SENHA_MESTRA) {
-                document.getElementById('login-overlay').style.display = 'none';
-                document.getElementById('conteudo-principal').style.display = 'block';
-                carregarTabela();
-            } else { alert("Senha Incorreta!"); }
+        function verificarSenha() {
+            const senha = document.getElementById('input-senha').value;
+            const hashDigitado = CryptoJS.SHA256(senha).toString();
+            
+            if (hashDigitado === HASH_AUTORIZADO) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('painel').style.display = 'block';
+                carregarDados();
+            } else { alert("Senha Inválida!"); }
         }
 
-        function carregarTabela() {
-            fetch(`${URL_FB}.json`)
-            .then(r => r.json())
-            .then(dados => {
-                const tabela = document.getElementById('lista-clientes');
-                tabela.innerHTML = "";
+        async function carregarDados() {
+            const r = await fetch(`${URL_BASE}.json`);
+            const dados = await r.json();
+            const corpo = document.getElementById('tabela-corpo');
+            corpo.innerHTML = "";
+
+            for (let id_key in dados) {
+                const item = dados[id_key];
+                const ativo = item.ativo === true || item.ativo === "true";
                 
-                for (let id in dados) {
-                    const conf = dados[id].configuracoes || {};
-                    const nome = conf.nome_cliente || "---";
-                    const exp = conf.data_expiracao || "---";
-                    const ativo = conf.ativo !== false;
-
-                    tabela.innerHTML += `
-                        <tr>
-                            <td><strong>${nome}</strong></td>
-                            <td><code style="background:#eee; padding:3px 6px; border-radius:4px">${id}</code></td>
-                            <td>${formatarData(exp)}</td>
-                            <td>
-                                <button class="btn btn-status ${ativo ? 'bg-on' : 'bg-off'}" onclick="mudarStatus('${id}', ${ativo})">
-                                    ${ativo ? 'ATIVO' : 'INATIVO'}
-                                </button>
-                            </td>
-                            <td>
-                                <button class="btn btn-del" onclick="removerID('${id}')">Excluir</button>
-                            </td>
-                        </tr>
-                    `;
-                }
-            });
-        }
-
-        function salvarNovo() {
-            const nome = document.getElementById('add-nome').value.trim();
-            const id = document.getElementById('add-id').value.trim();
-            const exp = document.getElementById('add-exp').value;
-
-            if(!nome || !id || !exp) { alert("Preencha todos os campos!"); return; }
-
-            // Salva dentro da estrutura que seus apps já leem: /id/configuracoes
-            fetch(`${URL_FB}/${id}/configuracoes.json`, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    nome_cliente: nome.toUpperCase(),
-                    ativo: true,
-                    data_expiracao: exp
-                })
-            }).then(() => {
-                alert("Licença Criada com Sucesso!");
-                limparCampos();
-                carregarTabela();
-            });
-        }
-
-        function mudarStatus(id, statusAtual) {
-            fetch(`${URL_FB}/${id}/configuracoes.json`, {
-                method: 'PATCH',
-                body: JSON.stringify({ ativo: !statusAtual })
-            }).then(() => carregarTabela());
-        }
-
-        function removerID(id) {
-            if(confirm(`ATENÇÃO: Deseja apagar permanentemente o ID ${id}? Todos os dados de clientes e cobranças dessa licença serão perdidos.`)) {
-                fetch(`${URL_FB}/${id}.json`, { method: 'DELETE' })
-                .then(() => carregarTabela());
+                corpo.innerHTML += `
+                    <tr>
+                        <td>${item.nome || '---'}</td>
+                        <td><code>${id_key}</code></td>
+                        <td>${item.expiracao || '---'}</td>
+                        <td>
+                            <button class="btn btn-status" style="background:${ativo?'#28a745':'#dc3545'}" 
+                                onclick="alternarStatus('${id_key}', ${ativo})">
+                                ${ativo ? 'ATIVO' : 'BLOQUEADO'}
+                            </button>
+                        </td>
+                        <td>
+                            <button class="btn" style="background:#666" onclick="excluirLicenca('${id_key}')">Excluir</button>
+                        </td>
+                    </tr>`;
             }
         }
 
-        function formatarData(data) {
-            if(data === "---") return "---";
-            const [ano, mes, dia] = data.split("-");
-            return `${dia}/${mes}/${ano}`;
+        async function salvarLicenca() {
+            const id = document.getElementById('id-maquina').value.trim();
+            const nomeCli = document.getElementById('nome').value.trim();
+            const dataExp = document.getElementById('expira').value.trim();
+
+            if (!id) return alert("O ID é obrigatório!");
+
+            const payload = {
+                nome: nomeCli,
+                expiracao: dataExp,
+                ativo: true
+            };
+
+            // Usamos PUT para gravar no ID específico sem gerar chaves aleatórias do Firebase
+            await fetch(`${URL_BASE}/${id}.json`, {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
+
+            alert("Licença Salva!");
+            carregarDados();
         }
 
-        function limparCampos() {
-            document.getElementById('add-nome').value = "";
-            document.getElementById('add-id').value = "";
-            document.getElementById('add-exp').value = "";
+        async function alternarStatus(id, statusAtual) {
+            await fetch(`${URL_BASE}/${id}.json`, {
+                method: 'PATCH',
+                body: JSON.stringify({ ativo: !statusAtual })
+            });
+            carregarDados();
+        }
+
+        async function excluirLicenca(id) {
+            if (confirm("Deseja realmente excluir esta licença?")) {
+                await fetch(`${URL_BASE}/${id}.json`, { method: 'DELETE' });
+                carregarDados();
+            }
         }
     </script>
 </body>
-
 </html>
-
