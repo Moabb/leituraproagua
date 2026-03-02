@@ -2,37 +2,26 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>ESCRITÓRIO - LEITURA PRO ÁGUA 💹</title>
+    <title>ESCRITÓRIO - LEITURA PRO ÁGUA 💰</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
     <style>
         :root { --azul: #1f538d; --laranja: #e67e22; --verde: #28a745; --vermelho: #d32f2f; --bg: #f4f7f6; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* Barra Lateral de Busca */
         .sidebar { width: 320px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
         .search-box { padding: 20px; border-bottom: 2px solid var(--azul); }
         .client-list { flex-grow: 1; overflow-y: auto; padding: 10px; }
-        .btn-cliente { width: 100%; text-align: left; padding: 12px; margin-bottom: 8px; border: 1px solid #eee; background: #fff; cursor: pointer; border-radius: 8px; transition: 0.2s; }
+        .btn-cliente { width: 100%; text-align: left; padding: 12px; margin-bottom: 8px; border: 1px solid #eee; background: #fff; cursor: pointer; border-radius: 8px; }
         .btn-cliente:hover { background: #e3f2fd; border-color: var(--azul); }
-
-        /* Área de Trabalho */
         .main { flex-grow: 1; display: flex; flex-direction: column; }
         .topo { background: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .conteudo { flex-grow: 1; padding: 30px; overflow-y: auto; }
-
-        /* Modais Estilo Windows */
         .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center; }
-        .modal-body { background: white; padding: 25px; border-radius: 12px; width: 450px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        
-        /* Botões */
-        .btn { border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; display: inline-flex; align-items: center; gap: 8px; }
+        .modal-body { background: white; padding: 25px; border-radius: 12px; width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }
+        .btn { border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 2px; }
         .btn-azul { background: var(--azul); } .btn-verde { background: var(--verde); }
         .btn-laranja { background: var(--laranja); } .btn-vermelho { background: var(--vermelho); }
         .btn-preto { background: #333; }
-
         .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
     </style>
@@ -42,7 +31,7 @@
     <div class="sidebar">
         <div class="search-box">
             <h3 style="margin:0 0 10px 0; color:var(--azul)">PESQUISAR RUA 🔍</h3>
-            <input type="text" id="input-busca" placeholder="Digite o nome da rua..." oninput="filtrar()">
+            <input type="text" id="input-busca" placeholder="Digite nome ou rua..." oninput="filtrar()">
         </div>
         <div class="client-list" id="lista-clientes"></div>
     </div>
@@ -53,21 +42,28 @@
                 <button class="btn btn-preto" onclick="abrirModal('modal-cadastro')">NOVO CLIENTE</button>
                 <button class="btn btn-azul" onclick="gerarQRAcesso()">QR ACESSO</button>
                 <button class="btn btn-laranja" onclick="abrirModal('modal-operador')">OPERADORES</button>
-                <span id="txt-comunidade" style="margin-left:15px; font-weight:bold;">📍 POÇÕES</span>
+                <span id="txt-comunidade" style="margin-left:15px; font-weight:bold;">📍 Carregando...</span>
             </div>
             <div>
-                <button class="btn btn-vermelho" onclick="abrirRelatorioDebitos()">TODOS DÉBITOS</button>
+                <button class="btn btn-vermelho" onclick="relatorioTodosDebitos()">TODOS DÉBITOS</button>
                 <button class="btn btn-azul" onclick="definirPreco()">PREÇO?</button>
                 <button class="btn btn-azul" onclick="definirTarifa()">TARIFA?</button>
                 <span id="lbl-info" style="margin-left:10px; font-size:13px; color:#666;"></span>
             </div>
         </div>
-
         <div class="conteudo" id="painel-cliente">
             <div style="text-align:center; color:#999; margin-top:100px;">
                 <h2>💹 SISTEMA LEITURA PRO ÁGUA ONLINE</h2>
-                <p>Selecione um morador na lista lateral para começar.</p>
+                <p>Selecione um morador na lista lateral.</p>
             </div>
+        </div>
+    </div>
+
+    <div id="modal-lista" class="modal">
+        <div class="modal-body">
+            <h3 id="modal-titulo">Lista</h3>
+            <div id="modal-dados"></div>
+            <button class="btn btn-vermelho" style="width:100%; margin-top:15px" onclick="fecharModais()">FECHAR</button>
         </div>
     </div>
 
@@ -82,38 +78,20 @@
         </div>
     </div>
 
-    <div id="modal-operador" class="modal">
-        <div class="modal-body">
-            <h3>Configurar Leiturista</h3>
-            <input type="text" id="op-nome" placeholder="Nome do Leiturista">
-            <button class="btn btn-laranja" style="width:100%" onclick="salvarOperador()">AUTORIZAR ACESSO</button>
-            <button class="btn btn-vermelho" style="width:100%; margin-top:5px;" onclick="fecharModais()">VOLTAR</button>
-        </div>
-    </div>
-
     <script>
         const URL_FB = "https://consuma-da-agua-default-rtdb.firebaseio.com/";
-        const ID_MAQUINA = "-BFEBFBFF000206A7"; // Seu ID Fixo
+        const ID_MAQUINA = "-BFEBFBFF000206A7"; 
 
         let precoM3 = 0, taxaFixa = 0, comunidade = "", clientes = {}, idSelecionado = null;
 
         async function carregarConfig() {
             const r = await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`);
             const d = await r.json();
-            if(!d || !d.ativo) { document.body.innerHTML="<h1>ACESSO BLOQUEADO</h1>"; return; }
-
             precoM3 = parseFloat(d.valor_m3 || 0);
             taxaFixa = parseFloat(d.taxa_fixa || 0);
             comunidade = d.nome || "POÇÕES";
-
             document.getElementById('txt-comunidade').innerText = "📍 " + comunidade;
             document.getElementById('lbl-info').innerText = `m³: ${precoM3} | TF: ${taxaFixa}`;
-            
-            // Sincroniza config com o nó de dados (como o seu Python fazia)
-            fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/configuracoes.json`, {
-                method: 'PATCH', body: JSON.stringify({preco_m3: precoM3, tarifa_fixa: taxaFixa})
-            });
-
             atualizarLista();
         }
 
@@ -129,7 +107,7 @@
             lista.innerHTML = "";
             for(let id in clientes) {
                 const c = clientes[id];
-                if(c.rua.includes(b) || c.nome.includes(b)) {
+                if(c.rua.toUpperCase().includes(b) || c.nome.toUpperCase().includes(b)) {
                     lista.innerHTML += `<button class="btn-cliente" onclick="exibirCliente('${id}')">
                         <strong>${c.nome}</strong><br><small>${c.rua}, ${c.numero}</small>
                     </button>`;
@@ -140,66 +118,35 @@
         async function exibirCliente(id) {
             idSelecionado = id;
             const c = clientes[id];
-            const container = document.getElementById('painel-cliente');
-            
-            // Busca última leitura (Lógica idêntica ao Python)
-            let ult = c.leitura_atual || 0;
-
-            container.innerHTML = `
+            const ult = c.leitura_atual || 0;
+            document.getElementById('painel-cliente').innerHTML = `
                 <div class="card">
                     <div style="display:flex; justify-content:space-between">
                         <h2>MORADOR: ${c.nome}</h2>
                         <button class="btn btn-azul" onclick="verHistorico('${id}')">VER HISTÓRICO</button>
                     </div>
-                    <label><input type="checkbox" ${c.isento_tarifa?'checked':''} onchange="setIsencao('${id}', this.checked)"> ISENTO DE TARIFA FIXA</label>
-                    
+                    <label><input type="checkbox" ${c.isento_tarifa?'checked':''} onchange="setIsencao('${id}', this.checked)"> ISENTO DE TARIFA</label>
                     <div style="background:#f9f9f9; padding:20px; border-radius:10px; margin-top:20px; display:flex; gap:15px; align-items:center;">
-                        <strong>ÚLTIMA LEITURA: ${ult}</strong>
-                        <input type="number" id="inp-atual" placeholder="Nova Leitura" style="width:150px; margin:0">
-                        <button class="btn btn-verde" onclick="lançar('${id}', ${ult})">LANÇAR E GERAR PDF</button>
+                        <strong>ANTERIOR: ${ult}</strong>
+                        <input type="number" id="inp-atual" placeholder="Nova Leitura" style="width:120px; margin:0">
+                        <button class="btn btn-verde" onclick="lancar('${id}', ${ult})">LANÇAR E GERAR PDF</button>
                         <button class="btn btn-azul" onclick="reimprimir('${id}')">REIMPRIMIR ÚLTIMA</button>
                     </div>
-
-                    <h3 style="margin-top:30px; color:#666">DÉBITOS PENDENTES</h3>
-                    <div id="lista-pendentes">Carregando débitos...</div>
-                </div>
-            `;
+                    <h3 style="margin-top:20px">DÉBITOS PENDENTES</h3>
+                    <div id="lista-pendentes"></div>
+                </div>`;
             carregarPendentes(id);
         }
 
-        async function carregarPendentes(idCli) {
-            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
-            const cobs = await r.json() || {};
-            const p = document.getElementById('lista-pendentes');
-            p.innerHTML = "";
-            for(let id in cobs) {
-                const cb = cobs[id];
-                if(cb.id_cliente === idCli && !cb.pago) {
-                    p.innerHTML += `<div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee">
-                        <span>📅 ${cb.data_leitura} | Consumo: ${cb.consumo}m³</span>
-                        <strong>R$ ${cb.valor.toFixed(2)}</strong>
-                        <button class="btn btn-laranja" onclick="darBaixa('${id}')">DAR BAIXA</button>
-                    </div>`;
-                }
-            }
-        }
-
-        async function lançar(id, ant) {
+        async function lancar(id, ant) {
             const atu = parseInt(document.getElementById('inp-atual').value);
             if(isNaN(atu) || atu < ant) { alert("Valor inválido"); return; }
-            
             const consumo = atu - ant;
             const tarifa = clientes[id].isento_tarifa ? 0 : taxaFixa;
             const total = (consumo * precoM3) + tarifa;
             const hoje = new Date().toLocaleDateString('pt-BR');
-
-            const nova = {
-                id_cliente: id, nome_cliente: clientes[id].nome,
-                leitura_anterior: ant, leitura_atual: atu,
-                consumo: consumo, valor: total, data_leitura: hoje,
-                pago: false, valor_tarifa: tarifa
-            };
-
+            const nova = { id_cliente: id, nome_cliente: clientes[id].nome, leitura_anterior: ant, leitura_atual: atu, consumo: consumo, valor: total, data_leitura: hoje, pago: false, valor_tarifa: tarifa };
+            
             await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`, {method:'POST', body:JSON.stringify(nova)});
             await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {method:'PATCH', body:JSON.stringify({leitura_atual: atu})});
             
@@ -207,38 +154,89 @@
             atualizarLista().then(() => exibirCliente(id));
         }
 
-        // --- FUNÇÕES AUXILIARES IGUAIS AO PYTHON ---
-        function definirPreco() { 
-            let p = prompt("Novo valor m³:", precoM3);
-            if(p) fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {method:'PATCH', body:JSON.stringify({valor_m3: parseFloat(p)})}).then(carregarConfig);
-        }
-        function definirTarifa() { 
-            let t = prompt("Nova Tarifa Fixa:", taxaFixa);
-            if(t) fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {method:'PATCH', body:JSON.stringify({taxa_fixa: parseFloat(t)})}).then(carregarConfig);
-        }
-        async function salvarCliente() {
-            const n = document.getElementById('cad-nome').value.toUpperCase();
-            const r = document.getElementById('cad-rua').value.toUpperCase();
-            const nu = document.getElementById('cad-num').value;
-            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes.json`, {method:'POST', body:JSON.stringify({nome:n, rua:r, numero:nu, leitura_atual:0, isento_tarifa:false})});
-            fecharModais(); atualizarLista();
-        }
-        async function darBaixa(id) {
-            if(confirm("Confirmar Pagamento?")) {
-                await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${id}.json`, {method:'PATCH', body:JSON.stringify({pago:true})});
-                exibirCliente(idSelecionado);
-            }
+        // --- FUNÇÃO PDF CORRIGIDA ---
+        function gerarPDF(cli, ant, atu, cons, total, vTarifa) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const hoje = new Date().toLocaleDateString('pt-BR');
+            const venc = new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString('pt-BR');
+
+            doc.setFillColor(31, 83, 141);
+            doc.rect(0, 0, 210, 30, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.text("FATURA DE ÁGUA - " + comunidade, 105, 20, {align:'center'});
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
+            doc.text(`CLIENTE: ${cli.nome}`, 20, 50);
+            doc.text(`ENDEREÇO: ${cli.rua}, ${cli.numero}`, 20, 58);
+            doc.text(`EMISSÃO: ${hoje}`, 150, 50);
+
+            doc.line(20, 65, 190, 65);
+            doc.text(`Leitura Anterior: ${ant} m³`, 20, 75);
+            doc.text(`Leitura Atual: ${atu} m³`, 20, 83);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Consumo: ${cons} m³`, 20, 91);
+            
+            doc.setFont("helvetica", "normal");
+            doc.text(`Valor Consumo: R$ ${(cons * precoM3).toFixed(2)}`, 130, 75);
+            doc.text(`Taxa Fixa: R$ ${vTarifa.toFixed(2)}`, 130, 83);
+
+            doc.setFillColor(245, 245, 245);
+            doc.rect(20, 100, 170, 25, 'F');
+            doc.setFontSize(14);
+            doc.text(`VENCIMENTO: ${venc}`, 30, 115);
+            doc.text(`TOTAL: R$ ${total.toFixed(2)}`, 130, 115);
+
+            doc.save(`fatura_${cli.nome}.pdf`);
         }
 
-        function gerarQRAcesso() {
-            const win = window.open("", "", "width=400,height=450");
-            win.document.write('<div id="q" style="display:flex;justify-content:center;margin-top:50px"></div><h2 style="text-align:center">'+ID_MAQUINA+'</h2>');
-            new QRCode(win.document.getElementById("q"), ID_MAQUINA);
+        // --- REIMPRIMIR ÚLTIMA ---
+        async function reimprimir(idCli) {
+            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
+            const cobs = await r.json();
+            let lista = Object.values(cobs).filter(c => c.id_cliente === idCli);
+            if(lista.length === 0) return alert("Nenhuma cobrança encontrada");
+            lista.sort((a,b) => b.leitura_atual - a.leitura_atual);
+            const u = lista[0];
+            gerarPDF(clientes[idCli], u.leitura_anterior, u.leitura_atual, u.consumo, u.valor, u.valor_tarifa);
+        }
+
+        // --- VER HISTÓRICO ---
+        async function verHistorico(idCli) {
+            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
+            const cobs = await r.json();
+            const lista = Object.values(cobs).filter(c => c.id_cliente === idCli);
+            document.getElementById('modal-titulo').innerText = "HISTÓRICO: " + clientes[idCli].nome;
+            let html = "<table style='width:100%'><tr><th>Data</th><th>m³</th><th>Valor</th><th>Status</th></tr>";
+            lista.forEach(c => {
+                html += `<tr><td>${c.data_leitura}</td><td>${c.consumo}</td><td>R$ ${c.valor.toFixed(2)}</td><td>${c.pago?'✅':'❌'}</td></tr>`;
+            });
+            document.getElementById('modal-dados').innerHTML = html + "</table>";
+            abrirModal('modal-lista');
+        }
+
+        // --- TODOS DÉBITOS ---
+        async function relatorioTodosDebitos() {
+            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
+            const cobs = await r.json();
+            const lista = Object.values(cobs).filter(c => !c.pago);
+            let total = 0;
+            document.getElementById('modal-titulo').innerText = "DÉBITOS GERAIS";
+            let html = "<div style='max-height:400px; overflow:auto'>";
+            lista.forEach(c => {
+                total += c.valor;
+                html += `<div style="border-bottom:1px solid #eee; padding:10px">${c.nome_cliente} - <b>R$ ${c.valor.toFixed(2)}</b></div>`;
+            });
+            document.getElementById('modal-dados').innerHTML = html + `</div><h3 style="color:red">TOTAL: R$ ${total.toFixed(2)}</h3>`;
+            abrirModal('modal-lista');
         }
 
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
         function fecharModais() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); }
-
+        async function setIsencao(id, val) { await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {method:'PATCH', body:JSON.stringify({isento_tarifa: val})}); atualizarLista(); }
+        
         carregarConfig();
     </script>
 </body>
