@@ -156,8 +156,27 @@
     async function exibirCliente(id) {
         idSelecionado = id;
         const c = clientes[id];
-        const ult = c.leitura_atual || 0;
         
+        // --- BUSCA LEITURA MAIS RECENTE (PC OU APP) ---
+        let ult = Number(c.leitura_atual || 0);
+        
+        try {
+            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
+            const cobs = await r.json();
+            if(cobs) {
+                // Filtra todas as cobranças deste cliente vindas de qualquer lugar (App ou PC)
+                let lista = Object.values(cobs).filter(cb => cb && String(cb.id_cliente) === String(id));
+                if(lista.length > 0) {
+                    // Ordena para pegar a maior leitura já registrada no hidrômetro
+                    lista.sort((a,b) => Number(b.leitura_atual) - Number(a.leitura_atual));
+                    let leituraBanco = Number(lista[0].leitura_atual);
+                    // Se a leitura no histórico for maior que a do cadastro, usa a do histórico
+                    if(leituraBanco > ult) ult = leituraBanco;
+                }
+            }
+        } catch(e) { console.log("Erro ao sincronizar leitura atual"); }
+        // ----------------------------------------------
+
         document.getElementById('painel-cliente').innerHTML = `
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #eee; padding-bottom:15px;">
@@ -172,7 +191,7 @@
                 </div>
 
                 <div style="background:#f0f7ff; padding:20px; border-radius:10px; margin-top:20px; display:flex; gap:15px; align-items:center; border: 1px solid #cde4ff;">
-                    <div><strong>ANTERIOR (HIDRÔMETRO):</strong><br><span style="font-size:20px">${ult} m³</span></div>
+                    <div><strong>ANTERIOR (HIDRÔMETRO):</strong><br><span style="font-size:24px; color:var(--azul);">${ult} m³</span></div>
                     <div style="flex-grow:1">
                         <strong>NOVA LEITURA:</strong>
                         <input type="number" id="inp-atual" placeholder="0000" style="font-size:18px; margin:0">
@@ -376,5 +395,6 @@
 </script>
 </body>
 </html>
+
 
 
