@@ -110,7 +110,7 @@
     const URL_FB = "https://consuma-da-agua-default-rtdb.firebaseio.com/";
     const ID_MAQUINA = "-BFEBFBFF000206A7"; 
 
-    let precoM3 = 0, taxaFixa = 0, comunidade = "", clientes = {}, idSelecionado = null;
+    let precoM3 = 0, taxaFixa = 0, valorFixoGlobal = 0, comunidade = "", clientes = {}, idSelecionado = null;
 
     // --- INICIALIZAÇÃO ---
     async function carregarConfig() {
@@ -119,14 +119,13 @@
             const d = await r.json();
             if(!d) return;
 
-            const d = await r.json();
             precoM3 = parseFloat(d.valor_m3 || 0);
             taxaFixa = parseFloat(d.taxa_fixa || 0);
-            valorFixoGlobal = parseFloat(d.valor_fixo_padrao || 0); // Nova linha
+            valorFixoGlobal = parseFloat(d.valor_fixo_padrao || 0);
             comunidade = d.nome || "POÇÕES";
 
             document.getElementById('txt-comunidade').innerText = "📍 " + comunidade;
-            document.getElementById('lbl-info').innerText = `m³: R$ ${precoM3.toFixed(2)} | TF: R$ ${taxaFixa.toFixed(2)}`;
+            document.getElementById('lbl-info').innerText = `m³: R$ ${precoM3.toFixed(2)} | TF: R$ ${taxaFixa.toFixed(2)} | FIXO: R$ ${valorFixoGlobal.toFixed(2)}`;
             
             await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/configuracoes.json`, {
                 method: 'PATCH', body: JSON.stringify({preco_m3: precoM3, tarifa_fixa: taxaFixa})
@@ -160,25 +159,20 @@
         idSelecionado = id;
         const c = clientes[id];
         
-        // --- BUSCA LEITURA MAIS RECENTE (PC OU APP) ---
         let ult = Number(c.leitura_atual || 0);
         
         try {
             const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
             const cobs = await r.json();
             if(cobs) {
-                // Filtra todas as cobranças deste cliente vindas de qualquer lugar (App ou PC)
                 let lista = Object.values(cobs).filter(cb => cb && String(cb.id_cliente) === String(id));
                 if(lista.length > 0) {
-                    // Ordena para pegar a maior leitura já registrada no hidrômetro
                     lista.sort((a,b) => Number(b.leitura_atual) - Number(a.leitura_atual));
                     let leituraBanco = Number(lista[0].leitura_atual);
-                    // Se a leitura no histórico for maior que a do cadastro, usa a do histórico
                     if(leituraBanco > ult) ult = leituraBanco;
                 }
             }
         } catch(e) { console.log("Erro ao sincronizar leitura atual"); }
-        // ----------------------------------------------
 
         document.getElementById('painel-cliente').innerHTML = `
     <div class="card">
@@ -195,7 +189,6 @@
                     <label style="cursor:pointer; font-weight:bold;">
                         <input type="checkbox" ${c.isento_tarifa?'checked':''} onchange="setIsencao('${id}', this.checked)"> ISENTO DE TARIFA FIXA
                     </label>
-                    // Dentro da função exibirCliente(id), onde monta o HTML:
                     <label style="cursor:pointer; font-weight:bold; margin-left:20px;">
                         <input type="checkbox" ${c.usar_valor_fixo?'checked':''} onchange="setUsaFixo('${id}', this.checked)"> COBRAR VALOR FIXO
                     </label>
@@ -217,7 +210,6 @@
         carregarPendentes(id);
     }
 
-    // --- FUNÇÃO REIMPRIMIR REVISADA (ACEITA LANÇAMENTOS MOBILE) ---
     async function reimprimir(idCli) {
         try {
             const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
@@ -228,19 +220,14 @@
                 return;
             }
             
-            // Filtra as cobranças garantindo que o ID do cliente seja comparado como String
-            // Isso evita erro se o App salvar como número e o PC como texto
             let lista = Object.values(cobs).filter(c => {
                 return c && String(c.id_cliente) === String(idCli);
             });
             
             if(lista.length > 0) {
-                // Ordena pela leitura_atual (numérico) para garantir a última
                 lista.sort((a,b) => Number(b.leitura_atual) - Number(a.leitura_atual));
-                
                 const u = lista[0];
                 
-                // Pega os valores garantindo que sejam números para o PDF não sair com "NaN"
                 const ant = Number(u.leitura_anterior || 0);
                 const atu = Number(u.leitura_atual || 0);
                 const cons = Number(u.consumo || 0);
@@ -258,19 +245,18 @@
     }
 
     async function lancar(id, ant) {
-    let atu = parseInt(document.getElementById('inp-atual').value);
+    let atuInput = document.getElementById('inp-atual').value;
+    let atu = parseInt(atuInput);
     const cliente = clientes[id];
     
     let consumo, tarifa, total;
 
     if (cliente.usar_valor_fixo) {
-        // Se for fixo, não importa a leitura para o cálculo do dinheiro
         consumo = 0; 
         tarifa = 0;
         total = valorFixoGlobal;
-        if(isNaN(atu)) atu = ant; // Se não digitaram nada, mantém a anterior
+        if(isNaN(atu)) atu = ant;
     } else {
-        // Cálculo normal por m³
         if(isNaN(atu) || atu < ant) return alert("Erro: Nova leitura inválida!");
         consumo = atu - ant;
         tarifa = cliente.isento_tarifa ? 0 : taxaFixa;
@@ -329,7 +315,6 @@
         doc.save(`fatura_${cli.nome.replace(/\s/g, '_')}.pdf`);
     }
 
-    // --- (Restante das funções: verHistorico, relatorioTodosDebitos, carregarPendentes, etc... mantidas exatamente iguais) ---
     async function verHistorico(idCli) {
         const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
         const cobs = await r.json() || {};
@@ -359,7 +344,6 @@
         abrirModal('modal-lista');
     }
 
-    // --- FUNÇÃO EDITAR CLIENTE ---
     async function editarCliente(id) {
         const c = clientes[id];
         const novoNome = prompt("Editar Nome:", c.nome);
@@ -383,7 +367,6 @@
         }
     }
     
-    // --- FUNÇÃO EXCLUIR CLIENTE ---
     async function excluirCliente(id) {
         const c = clientes[id];
         if (confirm(`⚠️ ATENÇÃO: Deseja realmente excluir ${c.nome}?\nIsso não apagará o histórico de cobranças, apenas o cadastro do morador.`)) {
@@ -403,14 +386,13 @@
         }
     }
 
-    // --- FUNÇÃO SALVAR MARCAÇÃO PREÇO FIXO ---
     async function setUsaFixo(id, val) { 
-    await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
-        method:'PATCH', 
-        body:JSON.stringify({usar_valor_fixo: val})
-    }); 
-    clientes[id].usar_valor_fixo = val;
-}
+        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
+            method:'PATCH', 
+            body:JSON.stringify({usar_valor_fixo: val})
+        }); 
+        clientes[id].usar_valor_fixo = val;
+    }
 
     async function carregarPendentes(idCli) {
         const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
@@ -427,17 +409,15 @@
         }
     }
 
-    // --- DEFINE O VALOR DA COBRANÇA FIXA NO BANCO ---
     function definirValorFixo() {
-        let atual = 0; // Busca do rótulo se quiser, ou define 0
-        let n = prompt("Defina o valor para Clientes de Taxa Fixa (R$):", "50.00");
+        let n = prompt("Defina o valor para Clientes de Taxa Fixa (R$):", valorFixoGlobal);
         if(n) {
             fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {
                 method:'PATCH', 
                 body:JSON.stringify({valor_fixo_padrao: parseFloat(n)})
             }).then(() => {
                 alert("Valor fixo global atualizado!");
-                carregarConfig(); // Recarrega para atualizar as variáveis
+                carregarConfig();
             });
         }
     }
@@ -462,7 +442,7 @@
         const r = document.getElementById('cad-rua').value.toUpperCase();
         const nu = document.getElementById('cad-num').value;
         if(!n) return alert("Nome é obrigatório");
-        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes.json`, {method:'POST', body:JSON.stringify({nome:n, rua:r, numero:nu, leitura_atual:0, isento_tarifa:false})});
+        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes.json`, {method:'POST', body:JSON.stringify({nome:n, rua:r, numero:nu, leitura_atual:0, isento_tarifa:false, usar_valor_fixo:false})});
         fecharModais(); atualizarLista();
     }
     async function darBaixa(id) {
@@ -487,9 +467,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
