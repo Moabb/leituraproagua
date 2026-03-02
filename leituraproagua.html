@@ -63,6 +63,7 @@
             </div>
             <div>
                 <button class="btn btn-vermelho" onclick="relatorioTodosDebitos()">TODOS DÉBITOS</button>
+                <button class="btn btn-azul" onclick="definirValorFixo()">FIXO?</button>
                 <button class="btn btn-azul" onclick="definirPreco()">PREÇO?</button>
                 <button class="btn btn-azul" onclick="definirTarifa()">TARIFA?</button>
                 <span id="lbl-info" style="margin-left:10px; font-size:13px; font-weight: bold;"></span>
@@ -118,8 +119,10 @@
             const d = await r.json();
             if(!d) return;
 
+            const d = await r.json();
             precoM3 = parseFloat(d.valor_m3 || 0);
             taxaFixa = parseFloat(d.taxa_fixa || 0);
+            valorFixoGlobal = parseFloat(d.valor_fixo_padrao || 0); // Nova linha
             comunidade = d.nome || "POÇÕES";
 
             document.getElementById('txt-comunidade').innerText = "📍 " + comunidade;
@@ -191,6 +194,10 @@
                 <div style="margin-top:15px;">
                     <label style="cursor:pointer; font-weight:bold;">
                         <input type="checkbox" ${c.isento_tarifa?'checked':''} onchange="setIsencao('${id}', this.checked)"> ISENTO DE TARIFA FIXA
+                    </label>
+                    // Dentro da função exibirCliente(id), onde monta o HTML:
+                    <label style="cursor:pointer; font-weight:bold; margin-left:20px;">
+                        <input type="checkbox" ${c.usar_valor_fixo?'checked':''} onchange="setUsaFixo('${id}', this.checked)"> COBRAR VALOR FIXO
                     </label>
                 </div>
 
@@ -398,6 +405,21 @@ async function excluirCliente(id) {
         }
     }
 
+    // --- DEFINE O VALOR DA COBRANÇA FIXA NO BANCO ---
+    function definirValorFixo() {
+        let atual = 0; // Busca do rótulo se quiser, ou define 0
+        let n = prompt("Defina o valor para Clientes de Taxa Fixa (R$):", "50.00");
+        if(n) {
+            fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {
+                method:'PATCH', 
+                body:JSON.stringify({valor_fixo_padrao: parseFloat(n)})
+            }).then(() => {
+                alert("Valor fixo global atualizado!");
+                carregarConfig(); // Recarrega para atualizar as variáveis
+            });
+        }
+    }
+
     function definirPreco() {
         let n = prompt("Novo preço do m³:", precoM3);
         if(n) fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {method:'PATCH', body:JSON.stringify({valor_m3: parseFloat(n)})}).then(carregarConfig);
@@ -443,6 +465,7 @@ async function excluirCliente(id) {
 </script>
 </body>
 </html>
+
 
 
 
