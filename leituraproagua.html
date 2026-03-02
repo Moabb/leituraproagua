@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESCRITÓRIO - LEITURA PRO ÁGUA 💰</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        :root { --azul: #1f538d; --laranja: #e67e22; --verde: #28a745; --vermelho: #d32f2f; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; display: flex; height: 100vh; }
+        
+        /* Sidebar (Equivalente ao frame_busca) */
+        .sidebar { width: 300px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        .search-area { padding: 20px; border-bottom: 1px solid #eee; }
+        .client-list { flex-grow: 1; overflow-y: auto; padding: 10px; }
+        .client-item { width: 100%; text-align: left; padding: 12px; margin-bottom: 5px; border: none; background: transparent; cursor: pointer; border-radius: 5px; transition: 0.2s; }
+        .client-item:hover { background: #e3f2fd; color: var(--azul); }
+
+        /* Área Principal */
+        .main-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .header-bar { background: white; padding: 15px 25px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        /* Cards e Layout */
+        .card-cliente { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .input-group { background: #f8f9fa; padding: 20px; border-radius: 10px; display: flex; align-items: center; gap: 20px; margin: 20px 0; }
+        
+        /* Botões Estilizados */
+        .btn { border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; }
+        .btn-azul { background: var(--azul); }
+        .btn-verde { background: var(--verde); }
+        .btn-laranja { background: var(--laranja); }
+        .btn-vermelho { background: var(--vermelho); }
+        
+        /* Tabela de Débitos */
+        .debt-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .debt-table th { text-align: left; color: #666; padding: 10px; border-bottom: 2px solid #eee; }
+        .debt-table td { padding: 12px 10px; border-bottom: 1px solid #eee; }
+
+        /* Estilo PDF identico ao seu Python */
+        input[type="number"] { padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 150px; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="search-area">
+            <h3>PESQUISAR RUA 🔍</h3>
+            <input type="text" id="busca-rua" placeholder="Nome da rua..." style="width: 90%;" oninput="filtrarClientes()">
+        </div>
+        <div class="client-list" id="lista-clientes">
+            </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header-bar">
+            <div>
+                <button class="btn btn-azul" onclick="abrirModalCadastro()">+ NOVO CLIENTE</button>
+                <button class="btn btn-laranja" onclick="gerarQRAcesso()">📱 QR ACESSO</button>
+                <span id="label-comunidade" style="margin-left: 15px; font-weight: bold;">📍 POÇÕES</span>
+            </div>
+            <div>
+                <button class="btn btn-vermelho" onclick="relatorioGeral()">TODOS DÉBITOS</button>
+                <span id="label-config" style="margin-left: 10px; font-size: 13px; color: #666;">m³: 0.0 | TF: 0.0</span>
+            </div>
+        </div>
+
+        <div id="area-card" class="card-cliente">
+            <h2 style="color: #ccc; text-align: center; margin-top: 100px;">SELECIONE UM CLIENTE NA LISTA</h2>
+        </div>
+    </div>
+
+    <script>
+        const URL_FB = "https://consuma-da-agua-default-rtdb.firebaseio.com/";
+        const ID_MAQUINA = "-BFEBFBFF000206A7"; // Substitua pelo seu ID real
+        
+        let dadosLocais = { precoM3: 0, taxaFixa: 0, comunidade: "" };
+        let clientesCache = {};
+
+        async function init() {
+            // Carrega Configurações (Equivalente ao carregar_config e carregar_comunidade)
+            const res = await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`);
+            const lic = await res.json();
+            
+            if(!lic || !lic.ativo) {
+                document.body.innerHTML = "<h1 style='color:red; text-align:center;'>SISTEMA BLOQUEADO - ID: " + ID_MAQUINA + "</h1>";
+                return;
+            }
+
+            dadosLocais.precoM3 = parseFloat(lic.valor_m3 || 0);
+            dadosLocais.taxaFixa = parseFloat(lic.taxa_fixa || 0);
+            dadosLocais.comunidade = lic.nome || "POÇÕES";
+
+            document.getElementById('label-comunidade').innerText = "📍 " + dadosLocais.comunidade;
+            document.getElementById('label-config').innerText = `m³: ${dadosLocais.precoM3} | TF: ${dadosLocais.taxaFixa}`;
+
+            carregarLista();
+        }
+
+        async function carregarLista() {
+            const res = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes.json`);
+            clientesCache = await res.json() || {};
+            filtrarClientes();
+        }
+
+        function filtrarClientes() {
+            const busca = document.getElementById('busca-rua').value.toUpperCase();
+            const container = document.getElementById('lista-clientes');
+            container.innerHTML = "";
+
+            for (let id in clientesCache) {
+                const c = clientesCache[id];
+                if (c.rua.includes(busca)) {
+                    container.innerHTML += `<button class="client-item" onclick="montarCard('${id}')">
+                        <strong>${c.nome}</strong><br><small>${c.rua}, ${c.numero}</small>
+                    </button>`;
+                }
+            }
+        }
+
+        async function montarCard(id) {
+            const c = clientesCache[id];
+            const area = document.getElementById('area-card');
+            
+            // Busca cobranças para pegar a última leitura real
+            const resCob = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
+            const cobrancas = await resCob.json() || {};
+            
+            let ultimaLeitura = c.leitura_atual || 0;
+
+            area.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h1>CLIENTE: ${c.nome}</h1>
+                    <label><input type="checkbox" ${c.isento_tarifa ? 'checked' : ''} onchange="alternarIsencao('${id}', this.checked)"> ISENTO TARIFA</label>
+                </div>
+                
+                <div class="input-group">
+                    <strong>LEITURA ANTERIOR: ${ultimaLeitura}</strong>
+                    <input type="number" id="nova-leitura" placeholder="Nova Leitura">
+                    <button class="btn btn-verde" onclick="gerarCobranca('${id}', ${ultimaLeitura})">LANÇAR E GERAR PDF</button>
+                    <button class="btn btn-azul" onclick="reimprimirUltima('${id}')">REIMPRIMIR ÚLTIMA</button>
+                </div>
+
+                <h3>ÚLTIMAS COBRANÇAS EM ABERTO</h3>
+                <table class="debt-table">
+                    <thead><tr><th>DATA</th><th>CONSUMO</th><th>VALOR</th><th>AÇÃO</th></tr></thead>
+                    <tbody id="lista-debitos"></tbody>
+                </table>
+            `;
+
+            // Preenche débitos (Baixa Nuvem)
+            const tb = document.getElementById('lista-debitos');
+            for (let cid in cobrancas) {
+                const cob = cobrancas[cid];
+                if (cob.id_cliente === id && !cob.pago) {
+                    tb.innerHTML += `<tr>
+                        <td>${cob.data_leitura}</td>
+                        <td>${cob.consumo}m³</td>
+                        <td style="color:blue; font-weight:bold;">R$ ${cob.valor.toFixed(2)}</td>
+                        <td><button class="btn btn-laranja" style="padding:5px 10px;" onclick="darBaixa('${cid}', '${id}')">DAR BAIXA</button></td>
+                    </tr>`;
+                }
+            }
+        }
+
+        async function gerarCobranca(idCli, anterior) {
+            const atual = parseInt(document.getElementById('nova-leitura').value);
+            if (isNaN(atual) || atual < anterior) return alert("Leitura Inválida!");
+
+            const c = clientesCache[idCli];
+            const consumo = atual - anterior;
+            const tarifa = c.isento_tarifa ? 0 : dadosLocais.taxaFixa;
+            const total = (consumo * dadosLocais.precoM3) + tarifa;
+            const dataHoje = new Date().toLocaleDateString('pt-BR');
+
+            const novaCob = {
+                id_cliente: idCli,
+                nome_cliente: c.nome,
+                leitura_anterior: anterior,
+                leitura_atual: atual,
+                consumo: consumo,
+                valor: total,
+                data_leitura: dataHoje,
+                pago: false,
+                valor_tarifa: tarifa
+            };
+
+            // Post no Firebase
+            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`, { method: 'POST', body: JSON.stringify(novaCob) });
+            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${idCli}.json`, { method: 'PATCH', body: JSON.stringify({leitura_atual: atual}) });
+
+            criarPDFFatura(c.nome, anterior, atual, consumo, total, tarifa);
+            carregarLista().then(() => montarCard(idCli));
+        }
+
+        function criarPDFFatura(nome, ant, atual, cons, total, vTarifa) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const dataHoje = new Date().toLocaleDateString('pt-BR');
+            const dataVenc = new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString('pt-BR');
+
+            // --- Estilização idêntica ao seu Canvas Python ---
+            doc.setFillColor(30, 144, 255); // DodgerBlue
+            doc.rect(0, 0, 210, 20, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(16);
+            doc.text("FATURA DE CONSUMO DE ÁGUA", 105, 13, {align: 'center'});
+
+            doc.setTextColor(0,0,0);
+            doc.setFontSize(10);
+            doc.text(`NOME: ${nome}`, 20, 40);
+            doc.text(`LOCALIDADE: ${dadosLocais.comunidade}`, 20, 50);
+            doc.text(`Emissão: ${dataHoje}`, 160, 40);
+
+            doc.setDrawColor(0);
+            doc.line(20, 55, 190, 55);
+
+            doc.text("DETALHAMENTO DA LEITURA", 20, 65);
+            doc.text(`L. Anterior: ${ant} m³  |  L. Atual: ${atual} m³  |  Consumo: ${cons} m³`, 20, 75);
+
+            doc.text(`Valor Consumo: R$ ${(cons * dadosLocais.precoM3).toFixed(2)}`, 20, 90);
+            doc.text(`Taxa Manutenção: R$ ${vTarifa.toFixed(2)}`, 20, 100);
+
+            doc.setFontSize(14);
+            doc.text(`VENCIMENTO: ${dataVenc}`, 20, 120);
+            doc.text(`TOTAL A PAGAR: R$ ${total.toFixed(2)}`, 130, 120);
+
+            doc.save(`fatura_${nome}.pdf`);
+        }
+
+        function gerarQRAcesso() {
+            const win = window.open("", "QR Code", "width=400,height=400");
+            win.document.write('<div id="qrcode" style="display:flex; justify-content:center; padding-top:50px;"></div>');
+            new win.QRCode(win.document.getElementById("qrcode"), ID_MAQUINA);
+        }
+
+        async function darBaixa(cobId, cliId) {
+            if(confirm("Confirmar Pagamento?")) {
+                await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${cobId}.json`, { method: 'PATCH', body: JSON.stringify({pago: true}) });
+                montarCard(cliId);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
