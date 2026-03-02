@@ -187,27 +187,43 @@
         carregarPendentes(id);
     }
 
-    // --- FUNÇÃO REIMPRIMIR ATUALIZADA (BUSCA DIRETO NO HISTÓRICO) ---
+    // --- FUNÇÃO REIMPRIMIR REVISADA (ACEITA LANÇAMENTOS MOBILE) ---
     async function reimprimir(idCli) {
         try {
             const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
-            const cobs = await r.json() || {};
+            const cobs = await r.json();
             
-            // Filtra as cobranças deste cliente
-            let lista = Object.values(cobs).filter(c => c.id_cliente === idCli);
+            if(!cobs) {
+                alert("Não existem cobranças registradas no banco de dados.");
+                return;
+            }
+            
+            // Filtra as cobranças garantindo que o ID do cliente seja comparado como String
+            // Isso evita erro se o App salvar como número e o PC como texto
+            let lista = Object.values(cobs).filter(c => {
+                return c && String(c.id_cliente) === String(idCli);
+            });
             
             if(lista.length > 0) {
-                // Ordena para pegar a que tem a leitura_atual mais alta (a última feita)
-                lista.sort((a,b) => b.leitura_atual - a.leitura_atual);
+                // Ordena pela leitura_atual (numérico) para garantir a última
+                lista.sort((a,b) => Number(b.leitura_atual) - Number(a.leitura_atual));
+                
                 const u = lista[0];
                 
-                // Gera o PDF com os dados reais que vieram do banco (mesmo que lançados pelo App)
-                gerarPDF(clientes[idCli], u.leitura_anterior, u.leitura_atual, u.consumo, u.valor, u.valor_tarifa);
+                // Pega os valores garantindo que sejam números para o PDF não sair com "NaN"
+                const ant = Number(u.leitura_anterior || 0);
+                const atu = Number(u.leitura_atual || 0);
+                const cons = Number(u.consumo || 0);
+                const val = Number(u.valor || 0);
+                const tfa = Number(u.valor_tarifa || 0);
+
+                gerarPDF(clientes[idCli], ant, atu, cons, val, tfa);
             } else { 
-                alert("Este morador ainda não possui nenhuma fatura lançada no sistema."); 
+                alert("Nenhuma fatura encontrada para este morador. Verifique se o lançamento foi concluído no celular."); 
             }
         } catch(e) {
-            alert("Erro ao conectar com o banco de dados.");
+            console.error("Erro detalhado:", e);
+            alert("Erro de sincronização. Tente recarregar a página (F5).");
         }
     }
 
@@ -360,4 +376,5 @@
 </script>
 </body>
 </html>
+
 
