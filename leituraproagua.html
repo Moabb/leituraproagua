@@ -178,11 +178,15 @@
         // ----------------------------------------------
 
         document.getElementById('painel-cliente').innerHTML = `
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #eee; padding-bottom:15px;">
-                    <h2 style="margin:0">CLIENTE: ${c.nome}</h2>
-                    <button class="btn btn-azul" onclick="verHistorico('${id}')">VER HISTÓRICO</button>
-                </div>
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #eee; padding-bottom:15px; flex-wrap: wrap; gap: 10px;">
+            <h2 style="margin:0">CLIENTE: ${c.nome}</h2>
+            <div>
+                <button class="btn btn-laranja" onclick="editarCliente('${id}')">EDITAR</button>
+                <button class="btn btn-vermelho" onclick="excluirCliente('${id}')">EXCLUIR</button>
+                <button class="btn btn-azul" onclick="verHistorico('${id}')">VER HISTÓRICO</button>
+            </div>
+        </div>
                 
                 <div style="margin-top:15px;">
                     <label style="cursor:pointer; font-weight:bold;">
@@ -335,6 +339,50 @@
         abrirModal('modal-lista');
     }
 
+    // --- FUNÇÃO EDITAR CLIENTE ---
+async function editarCliente(id) {
+    const c = clientes[id];
+    const novoNome = prompt("Editar Nome:", c.nome);
+    const novaRua = prompt("Editar Rua:", c.rua || "");
+    const novoNum = prompt("Editar Número:", c.numero || "");
+
+    if (novoNome && confirm("Confirmar alteração dos dados?")) {
+        const dadosAtualizados = {
+            nome: novoNome.toUpperCase(),
+            rua: novaRua.toUpperCase(),
+            numero: novoNum
+        };
+        
+        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
+            method: 'PATCH',
+            body: JSON.stringify(dadosAtualizados)
+        });
+        
+        alert("Dados atualizados com sucesso!");
+        atualizarLista().then(() => exibirCliente(id));
+    }
+}
+
+// --- FUNÇÃO EXCLUIR CLIENTE ---
+async function excluirCliente(id) {
+    const c = clientes[id];
+    if (confirm(`⚠️ ATENÇÃO: Deseja realmente excluir ${c.nome}?\nIsso não apagará o histórico de cobranças, apenas o cadastro do morador.`)) {
+        if (confirm("TEM CERTEZA? Esta ação não pode ser desfeita!")) {
+            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
+                method: 'DELETE'
+            });
+            
+            alert("Cliente removido com sucesso.");
+            document.getElementById('painel-cliente').innerHTML = `
+                <div style="text-align:center; color:#999; margin-top:100px;">
+                    <h2>Cliente Excluído</h2>
+                    <p>Selecione outro morador na lista lateral.</p>
+                </div>`;
+            atualizarLista();
+        }
+    }
+}
+
     async function carregarPendentes(idCli) {
         const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
         const cobs = await r.json() || {};
@@ -395,6 +443,7 @@
 </script>
 </body>
 </html>
+
 
 
 
