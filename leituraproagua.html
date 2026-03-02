@@ -258,27 +258,40 @@
     }
 
     async function lancar(id, ant) {
-        const atu = parseInt(document.getElementById('inp-atual').value);
+    let atu = parseInt(document.getElementById('inp-atual').value);
+    const cliente = clientes[id];
+    
+    let consumo, tarifa, total;
+
+    if (cliente.usar_valor_fixo) {
+        // Se for fixo, não importa a leitura para o cálculo do dinheiro
+        consumo = 0; 
+        tarifa = 0;
+        total = valorFixoGlobal;
+        if(isNaN(atu)) atu = ant; // Se não digitaram nada, mantém a anterior
+    } else {
+        // Cálculo normal por m³
         if(isNaN(atu) || atu < ant) return alert("Erro: Nova leitura inválida!");
-
-        const consumo = atu - ant;
-        const tarifa = clientes[id].isento_tarifa ? 0 : taxaFixa;
-        const total = (consumo * precoM3) + tarifa;
-        const hoje = new Date().toLocaleDateString('pt-BR');
-
-        const nova = {
-            id_cliente: id, nome_cliente: clientes[id].nome,
-            leitura_anterior: ant, leitura_atual: atu,
-            consumo: consumo, valor: total, data_leitura: hoje,
-            pago: false, valor_tarifa: tarifa
-        };
-
-        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`, {method:'POST', body:JSON.stringify(nova)});
-        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {method:'PATCH', body:JSON.stringify({leitura_atual: atu})});
-        
-        gerarPDF(clientes[id], ant, atu, consumo, total, tarifa);
-        atualizarLista().then(() => exibirCliente(id));
+        consumo = atu - ant;
+        tarifa = cliente.isento_tarifa ? 0 : taxaFixa;
+        total = (consumo * precoM3) + tarifa;
     }
+
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const nova = {
+        id_cliente: id, nome_cliente: cliente.nome,
+        leitura_anterior: ant, leitura_atual: atu,
+        consumo: consumo, valor: total, data_leitura: hoje,
+        pago: false, valor_tarifa: tarifa, 
+        tipo_cobranca: cliente.usar_valor_fixo ? "FIXA" : "M3"
+    };
+
+    await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`, {method:'POST', body:JSON.stringify(nova)});
+    await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {method:'PATCH', body:JSON.stringify({leitura_atual: atu})});
+    
+    gerarPDF(cliente, ant, atu, consumo, total, tarifa);
+    atualizarLista().then(() => exibirCliente(id));
+}
 
     function gerarPDF(cli, ant, atu, cons, total, vTarifa) {
         const { jsPDF } = window.jspdf;
@@ -347,47 +360,56 @@
     }
 
     // --- FUNÇÃO EDITAR CLIENTE ---
-async function editarCliente(id) {
-    const c = clientes[id];
-    const novoNome = prompt("Editar Nome:", c.nome);
-    const novaRua = prompt("Editar Rua:", c.rua || "");
-    const novoNum = prompt("Editar Número:", c.numero || "");
-
-    if (novoNome && confirm("Confirmar alteração dos dados?")) {
-        const dadosAtualizados = {
-            nome: novoNome.toUpperCase(),
-            rua: novaRua.toUpperCase(),
-            numero: novoNum
-        };
-        
-        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
-            method: 'PATCH',
-            body: JSON.stringify(dadosAtualizados)
-        });
-        
-        alert("Dados atualizados com sucesso!");
-        atualizarLista().then(() => exibirCliente(id));
-    }
-}
-
-// --- FUNÇÃO EXCLUIR CLIENTE ---
-async function excluirCliente(id) {
-    const c = clientes[id];
-    if (confirm(`⚠️ ATENÇÃO: Deseja realmente excluir ${c.nome}?\nIsso não apagará o histórico de cobranças, apenas o cadastro do morador.`)) {
-        if (confirm("TEM CERTEZA? Esta ação não pode ser desfeita!")) {
+    async function editarCliente(id) {
+        const c = clientes[id];
+        const novoNome = prompt("Editar Nome:", c.nome);
+        const novaRua = prompt("Editar Rua:", c.rua || "");
+        const novoNum = prompt("Editar Número:", c.numero || "");
+    
+        if (novoNome && confirm("Confirmar alteração dos dados?")) {
+            const dadosAtualizados = {
+                nome: novoNome.toUpperCase(),
+                rua: novaRua.toUpperCase(),
+                numero: novoNum
+            };
+            
             await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
-                method: 'DELETE'
+                method: 'PATCH',
+                body: JSON.stringify(dadosAtualizados)
             });
             
-            alert("Cliente removido com sucesso.");
-            document.getElementById('painel-cliente').innerHTML = `
-                <div style="text-align:center; color:#999; margin-top:100px;">
-                    <h2>Cliente Excluído</h2>
-                    <p>Selecione outro morador na lista lateral.</p>
-                </div>`;
-            atualizarLista();
+            alert("Dados atualizados com sucesso!");
+            atualizarLista().then(() => exibirCliente(id));
         }
     }
+    
+    // --- FUNÇÃO EXCLUIR CLIENTE ---
+    async function excluirCliente(id) {
+        const c = clientes[id];
+        if (confirm(`⚠️ ATENÇÃO: Deseja realmente excluir ${c.nome}?\nIsso não apagará o histórico de cobranças, apenas o cadastro do morador.`)) {
+            if (confirm("TEM CERTEZA? Esta ação não pode ser desfeita!")) {
+                await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
+                    method: 'DELETE'
+                });
+                
+                alert("Cliente removido com sucesso.");
+                document.getElementById('painel-cliente').innerHTML = `
+                    <div style="text-align:center; color:#999; margin-top:100px;">
+                        <h2>Cliente Excluído</h2>
+                        <p>Selecione outro morador na lista lateral.</p>
+                    </div>`;
+                atualizarLista();
+            }
+        }
+    }
+
+    // --- FUNÇÃO SALVAR MARCAÇÃO PREÇO FIXO ---
+    async function setUsaFixo(id, val) { 
+    await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
+        method:'PATCH', 
+        body:JSON.stringify({usar_valor_fixo: val})
+    }); 
+    clientes[id].usar_valor_fixo = val;
 }
 
     async function carregarPendentes(idCli) {
@@ -465,6 +487,7 @@ async function excluirCliente(id) {
 </script>
 </body>
 </html>
+
 
 
 
