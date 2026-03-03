@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MASTER - Leitura Pro Água 🛡️</title>
     <style>
-        :root { --azul: #1f538d; --danger: #d32f2f; --success: #388e3c; --cinza: #666; }
+        :root { --azul: #1f538d; --danger: #d32f2f; --success: #388e3c; --cinza: #666; --alerta: #f39c12; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 1000px; margin: auto; }
         
@@ -16,13 +16,14 @@
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
         th { background: var(--azul); color: white; }
         
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; width: 95%; box-sizing: border-box; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
         .btn { border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; margin: 2px; }
         .btn-add { background: var(--azul); width: 100%; margin-top: 10px; }
-        .btn-edit { background: #f39c12; font-size: 11px; }
+        .btn-gen { background: var(--success); font-size: 10px; width: auto; white-space: nowrap; margin-bottom: 10px; }
+        .btn-edit { background: var(--alerta); font-size: 11px; }
         .btn-del { background: var(--danger); font-size: 11px; }
         
-        .badge-vencido { color: white; background: var(--danger); padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+        .flex-row { display: flex; gap: 10px; align-items: flex-end; }
     </style>
 </head>
 <body>
@@ -40,9 +41,7 @@
     <div id="painel" style="display: none;" class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2>Gerenciador de Licenças Multi-Acesso</h2>
-            <div>
-                <button class="btn" style="background:var(--cinza)" onclick="location.reload()">Sair</button>
-            </div>
+            <button class="btn" style="background:var(--cinza)" onclick="location.reload()">Sair</button>
         </div>
         
         <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 5px solid var(--azul);">
@@ -52,26 +51,28 @@
                     <label style="font-size: 11px; font-weight: bold;">NOME DO CLIENTE / COMUNIDADE</label>
                     <input type="text" id="nome-cli" placeholder="Ex: Poções - Central">
                 </div>
-                <div style="flex: 1; min-width: 200px;">
-                    <label style="font-size: 11px; font-weight: bold;">ID DA MÁQUINA (Terminal)</label>
-                    <input type="text" id="id-maquina" placeholder="Cole o ID aqui">
+                
+                <div style="flex: 1; min-width: 250px;">
+                    <label style="font-size: 11px; font-weight: bold;">CHAVE DE ACESSO (ID)</label>
+                    <div class="flex-row">
+                        <input type="text" id="id-maquina" placeholder="Gere ou cole uma chave">
+                        <button class="btn btn-gen" onclick="gerarChaveAleatoria()">GERAR CHAVE</button>
+                    </div>
                 </div>
+
                 <div style="flex: 1; min-width: 150px;">
                     <label style="font-size: 11px; font-weight: bold;">DATA DE EXPIRAÇÃO</label>
                     <input type="text" id="data-exp" placeholder="DD/MM/AAAA">
                 </div>
-                <div style="flex: 0.5; display: flex; align-items: flex-end; padding-bottom: 10px;">
-                    <button class="btn btn-add" onclick="salvarLicenca()" style="margin:0; height: 40px;">CADASTRAR</button>
-                </div>
             </div>
-            <small style="color: #666;">* Para dar acesso a dois computadores, cadastre o ID de cada um com o mesmo nome de cliente.</small>
+            <button class="btn btn-add" onclick="salvarLicenca()">CADASTRAR E ATIVAR</button>
         </div>
 
         <table>
             <thead>
                 <tr>
                     <th>Terminal / Cliente</th>
-                    <th>ID da Máquina</th>
+                    <th>Chave (ID)</th>
                     <th>Vencimento</th>
                     <th>Status</th>
                     <th>Ações</th>
@@ -83,6 +84,16 @@
 
     <script>
         const URL_BASE = "https://consuma-da-agua-default-rtdb.firebaseio.com";
+
+        // Função para gerar uma chave aleatória estilo Firebase
+        function gerarChaveAleatoria() {
+            const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let resultado = '-L'; // Começa com -L para padrão visual
+            for (let i = 0; i < 18; i++) {
+                resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+            }
+            document.getElementById('id-maquina').value = resultado;
+        }
 
         async function autenticar() {
             const userIn = document.getElementById('user-input').value.trim();
@@ -110,7 +121,6 @@
             const hoje = new Date();
             hoje.setHours(0,0,0,0);
 
-            // 1. AGRUPAMENTO POR CLIENTE
             const grupos = {};
             for (let id_maquina in dados) {
                 const item = dados[id_maquina];
@@ -119,13 +129,8 @@
                 grupos[nomeGrupo].push({ id_dispositivo: id_maquina, ...item });
             }
 
-            // 2. RENDERIZAÇÃO COM LÓGICA DE ALERTA VOLTADA
             for (let nomeCliente in grupos) {
-                // Linha do Cliente (Pai)
-                corpo.innerHTML += `
-                    <tr style="background-color: #f1f1f1;">
-                        <td colspan="5"><strong>📁 CLIENTE: ${nomeCliente}</strong></td>
-                    </tr>`;
+                corpo.innerHTML += `<tr style="background-color: #f1f1f1;"><td colspan="5"><strong>📁 CLIENTE: ${nomeCliente}</strong></td></tr>`;
 
                 grupos[nomeCliente].forEach(item => {
                     const ativo = item.ativo === true;
@@ -133,29 +138,22 @@
                     let estiloLinha = "";
                     
                     if (item.expiracao) {
-                        // Converter DD/MM/AAAA para Date
                         const p = item.expiracao.split("/");
                         const dExp = new Date(p[2], p[1]-1, p[0]);
-                        
-                        // Cálculo de diferença de dias
-                        const diffTempo = dExp - hoje;
-                        const diffDias = Math.ceil(diffTempo / (1000 * 60 * 60 * 24));
+                        const diffDias = Math.ceil((dExp - hoje) / (1000 * 60 * 60 * 24));
 
                         if (diffDias < 0) {
                             alerta = '<br><small style="color:red"><b>EXPIRADA</b></small>';
-                            estiloLinha = "background-color: #ffebee;"; // Fundo levemente vermelho
+                            estiloLinha = "background-color: #ffebee;";
                         } else if (diffDias <= 10) {
                             alerta = `<br><small style="color:#856404"><b>VENCE EM ${diffDias} DIAS</b></small>`;
-                            estiloLinha = "background-color: #fff3cd;"; // Fundo levemente amarelo
+                            estiloLinha = "background-color: #fff3cd;";
                         }
                     }
 
                     corpo.innerHTML += `
                         <tr style="${estiloLinha}">
-                            <td style="padding-left: 40px;">
-                                |-> 💻 Terminal
-                                ${alerta}
-                            </td>
+                            <td style="padding-left: 40px;">💻 Terminal ${alerta}</td>
                             <td><small><code>${item.id_dispositivo}</code></small></td>
                             <td>${item.expiracao || '---'}</td>
                             <td>
@@ -185,7 +183,7 @@
                 body: JSON.stringify({ nome: nomeCli, expiracao: dataExp, ativo: true })
             });
 
-            alert("Licença de terminal cadastrada!");
+            alert("Licença ativada! Envie a chave ao cliente.");
             carregarDados();
         }
 
