@@ -138,36 +138,49 @@
 
     <script>
     const URL_FB = "https://consuma-da-agua-default-rtdb.firebaseio.com/";
-    const ID_MAQUINA = "-BFEBFBFF000206A7"; 
+    
+    // --- LÓGICA DE IDENTIFICAÇÃO AUTOMÁTICA ---
+    // 1. Tenta pegar o ID que já foi salvo neste computador antes
+    // 2. Se não tiver, tenta pegar o ID que veio no link (URL)
+    let ID_MAQUINA = localStorage.getItem('id_licenca_ativa') || new URLSearchParams(window.location.search).get('id');
 
     let precoM3 = 0, taxaFixa = 0, valorFixoGlobal = 0, comunidade = "", clientes = {}, idSelecionado = null;
 
-    // --- INICIALIZAÇÃO ---
     async function carregarConfig() {
+        // Se o computador ainda não tem ID salvo, ele pergunta uma única vez
+        if (!ID_MAQUINA || ID_MAQUINA === "null") {
+            ID_MAQUINA = prompt("SISTEMA NÃO IDENTIFICADO.\nPor favor, insira o ID da Licença deste Terminal:");
+            
+            if (ID_MAQUINA) {
+                localStorage.setItem('id_licenca_ativa', ID_MAQUINA); // Salva para nunca mais pedir
+            } else {
+                alert("O ID é obrigatório para carregar os dados.");
+                return;
+            }
+        }
+
         try {
             const r = await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`);
             const d = await r.json();
-            const estaAtivo = d.ativo === true;
-
-            if(!d || !estaAtivo) {
+            
+            // Verifica se a licença existe no seu Firebase
+            if(!d || d.ativo !== true) {
+                // Se o ID for inválido, limpa a memória para permitir digitar outro
+                localStorage.removeItem('id_licenca_ativa'); 
                 document.body.innerHTML = `
-                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#fff; font-family:sans-serif; text-align:center; padding: 20px;">
-                        <h1 style="color:red; font-size:40px; margin-bottom:10px;">⚠️ ACESSO RESTRITO</h1>
-                        <p style="font-size:18px; color:#555;">Sua licença não está ativa ou expirou.</p>
-                        <p>Status no Sistema: <span style="color:red; font-weight:bold;">BLOQUEADO</span></p>
-                        <br>
-                        <button class="btn btn-azul" onclick="location.reload()">TENTAR NOVAMENTE</button>
-                        <br><br>
-                        <small style="color:#ccc;">ID: ${ID_MAQUINA}</small>
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; font-family:sans-serif;">
+                        <h1 style="color:red">⚠️ LICENÇA INVÁLIDA</h1>
+                        <p>O ID <b>${ID_MAQUINA}</b> não possui acesso ativo.</p>
+                        <button class="btn btn-azul" onclick="location.reload()">TENTAR OUTRO ID</button>
                     </div>`;
                 return; 
             }
-            // ---------------------------------
 
+            // Se chegou aqui, o ID foi identificado e validado com sucesso!
             precoM3 = parseFloat(d.valor_m3 || 0);
             taxaFixa = parseFloat(d.taxa_fixa || 0);
             valorFixoGlobal = parseFloat(d.valor_fixo_padrao || 0);
-            comunidade = d.nome || "POÇÕES";
+            comunidade = d.nome || "COMUNIDADE";
 
             document.getElementById('txt-comunidade').innerText = "📍 " + comunidade;
             document.getElementById('lbl-info').innerText = `m³: R$ ${precoM3.toFixed(2)} | TF: R$ ${taxaFixa.toFixed(2)} | FIXO: R$ ${valorFixoGlobal.toFixed(2)}`;
@@ -177,7 +190,10 @@
             });
 
             atualizarLista();
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            console.error(e);
+            alert("Erro de conexão com a nuvem.");
+        }
     }
 
     async function atualizarLista() {
@@ -631,4 +647,3 @@
 </script>
 </body>
 </html>
-
