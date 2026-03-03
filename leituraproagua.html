@@ -57,7 +57,8 @@
         .btn-preto { background: #333; }
         .btn:hover { opacity: 0.8; }
 
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 20px; box-sizing: border-box; margin-bottom: 10px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        input.checkbox { padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 20px; box-sizing: border-box; margin-bottom: 10px; }
         input.pesquisa { padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
        
         /* Modais */
@@ -145,7 +146,22 @@
         try {
             const r = await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`);
             const d = await r.json();
-            if(!d) return;
+            const estaAtivo = d.ativo === true;
+
+            if(!d || !estaAtivo) {
+                document.body.innerHTML = `
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#fff; font-family:sans-serif; text-align:center; padding: 20px;">
+                        <h1 style="color:red; font-size:40px; margin-bottom:10px;">⚠️ ACESSO RESTRITO</h1>
+                        <p style="font-size:18px; color:#555;">Sua licença não está ativa ou expirou.</p>
+                        <p>Status no Sistema: <span style="color:red; font-weight:bold;">BLOQUEADO</span></p>
+                        <br>
+                        <button class="btn btn-azul" onclick="location.reload()">TENTAR NOVAMENTE</button>
+                        <br><br>
+                        <small style="color:#ccc;">ID: ${ID_MAQUINA}</small>
+                    </div>`;
+                return; 
+            }
+            // ---------------------------------
 
             precoM3 = parseFloat(d.valor_m3 || 0);
             taxaFixa = parseFloat(d.taxa_fixa || 0);
@@ -215,10 +231,10 @@
                 
                 <div class="opcoes-cliente">
                     <label style="cursor:pointer; font-weight:bold; display: block; background: #f9f9f9; padding: 8px; border-radius: 5px;">
-                        <input type="checkbox" ${c.isento_tarifa?'checked':''} onchange="setIsencao('${id}', this.checked)"> 🛡️ ISENTO DE TARIFA FIXA
+                        <input class="checkbox" type="checkbox" ${c.isento_tarifa?'checked':''} onchange="setIsencao('${id}', this.checked)"> 🛡️ ISENTO DE TARIFA FIXA
                     </label>
                     <label style="cursor:pointer; font-weight:bold; display: block; background: #f9f9f9; padding: 8px; border-radius: 5px;">
-                        <input type="checkbox" ${c.usar_valor_fixo?'checked':''} onchange="setUsaFixo('${id}', this.checked)"> 💰 COBRAR VALOR FIXO
+                        <input class="checkbox" type="checkbox" ${c.usar_valor_fixo?'checked':''} onchange="setUsaFixo('${id}', this.checked)"> 💰 COBRAR VALOR FIXO
                     </label>
                 </div>
 
@@ -308,40 +324,126 @@
 }
 
     function gerarPDF(cli, ant, atu, cons, total, vTarifa) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const hoje = new Date().toLocaleDateString('pt-BR');
-        const venc = new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString('pt-BR');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const venc = new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString('pt-BR');
 
-        doc.setFillColor(31, 83, 141);
-        doc.rect(0, 0, 210, 30, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(18);
-        doc.text("FATURA DE ÁGUA - " + comunidade, 105, 20, {align:'center'});
+    // --- CABEÇALHO ---
+    doc.setFillColor(31, 83, 141);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.text("FATURA DA ÁGUA - " + comunidade, 105, 20, {align:'center'});
 
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(12);
-        doc.text(`CLIENTE: ${cli.nome}`, 20, 50);
-        doc.text(`ENDEREÇO: ${cli.rua || 'N/A'}, ${cli.numero || 'S/N'}`, 20, 58);
-        doc.text(`EMISSÃO: ${hoje}`, 150, 50);
+    // --- DADOS DO CONSUMIDOR ---
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.text("DADOS DO CONSUMIDOR", 20, 45);
+    doc.line(20, 47, 190, 47);
+    
+    doc.setFont("helvetica", "normal");
+    doc.text(`NOME: ${cli.nome}`, 20, 55);
+    doc.text(`ENDEREÇO: ${cli.rua || 'N/A'}, Nº ${cli.numero || 'S/N'}`, 20, 62);
+    doc.text(`LOCALIDADE: ${comunidade}`, 20, 69);
+    doc.text(`Emissão: ${hoje}`, 150, 55);
 
-        doc.line(20, 65, 190, 65);
-        doc.text(`Leitura Anterior: ${ant} m³`, 20, 75);
-        doc.text(`Leitura Atual: ${atu} m³`, 20, 83);
-        doc.text(`Consumo: ${cons} m³`, 20, 91);
-        
-        doc.text(`Valor Consumo: R$ ${(cons * precoM3).toFixed(2)}`, 130, 75);
-        doc.text(`Taxa Fixa: R$ ${vTarifa.toFixed(2)}`, 130, 83);
+    // --- DETALHAMENTO DA LEITURA ---
+    doc.setFont("helvetica", "bold");
+    doc.text("DETALHAMENTO DA LEITURA", 20, 85);
+    doc.line(20, 87, 190, 87);
 
-        doc.setFillColor(245, 245, 245);
-        doc.rect(20, 100, 170, 25, 'F');
-        doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
-        doc.text(`VENCIMENTO: ${venc}`, 30, 115);
-        doc.text(`TOTAL: R$ ${total.toFixed(2)}`, 130, 115);
+    // Tabela de Leitura 
+    doc.setFontSize(10);
+    doc.text("LEITURA ANTERIOR", 20, 95);
+    doc.text("LEITURA ATUAL", 65, 95);
+    doc.text("CONSUMO", 110, 95);
+    doc.text("PREÇO M³", 155, 95);
 
-        doc.save(`fatura_${cli.nome.replace(/\s/g, '_')}.pdf`);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${ant} m³`, 20, 102);
+    doc.text(`${atu} m³`, 65, 102);
+    doc.text(`${cons} m³`, 110, 102);
+    doc.text(`R$ ${precoM3.toFixed(2)}`, 155, 102);
+
+    // --- VALORES ---
+    doc.line(20, 110, 190, 110);
+    
+    // LÓGICA DE EXIBIÇÃO CORRIGIDA:
+    if (cli.usar_valor_fixo) {
+        // Se for valor fixo, mostra apenas uma linha centralizada
+        doc.text(`Sem Hidrómetro (Valor Fixo):`, 20, 120);
+        doc.text(`R$ ${total.toFixed(2)}`, 160, 120);
+    } else {
+        // Se for consumo, mostra o detalhe do consumo + a tarifa de manutenção
+        let valorConsumo = cons * precoM3;
+        doc.text(`Valor do Consumo (${cons} x R$ ${precoM3.toFixed(2)}):`, 20, 120);
+        doc.text(`R$ ${valorConsumo.toFixed(2)}`, 160, 120);
+
+        doc.text(`Tarifa de Manutenção:`, 20, 128);
+        doc.text(`R$ ${vTarifa.toFixed(2)}`, 160, 128);
     }
+
+    // --- TOTAL A PAGAR ---
+    doc.setFillColor(240, 240, 240);
+    doc.rect(20, 140, 170, 25, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("DATA DE VENCIMENTO", 30, 155);
+    doc.text(venc, 85, 155);
+    
+    doc.text("TOTAL A PAGAR", 130, 155);
+    doc.setFontSize(14);
+    doc.setTextColor(200, 0, 0); 
+    doc.text(`R$ ${total.toFixed(2)}`, 165, 155);
+
+    // --- RODAPÉ ---
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.text("Mantenha suas contas em dia para garantir o fornecimento.", 105, 180, { align: 'center' }); 
+
+    doc.save(`fatura_${cli.nome.replace(/\s/g, '_')}.pdf`);
+}
+
+    function gerarReciboPagamento(cli, valor_total, dataPagamento) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // --- BORDA DO RECIBO ---
+    doc.setDrawColor(200);
+    doc.rect(10, 10, 190, 90); // Cria um quadro compacto
+
+    // --- CABEÇALHO ---
+    doc.setFillColor(40, 40, 40);
+    doc.rect(10, 10, 190, 15, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("RECIBO DE PAGAMENTO - " + comunidade, 105, 20, { align: 'center' });
+
+    // --- CORPO DO RECIBO ---
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    
+    doc.text(`Recebemos de: ${cli.nome}`, 20, 40);
+    doc.text(`Endereço: ${cli.rua || 'N/A'}, Nº ${cli.numero || 'S/N'}`, 20, 48);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text(`VALOR PAGO: R$ ${parseFloat(valor_total).toFixed(2)}`, 20, 60);
+    doc.text(`DATA: ${dataPagamento}`, 140, 60);
+
+    // --- CAMPO DE ASSINATURA ---
+    doc.line(60, 85, 150, 85); // Linha da assinatura
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    doc.text("Assinatura do Responsável", 105, 90, { align: 'center' });
+
+    // Salva o arquivo
+    doc.save(`recibo_${cli.nome.replace(/\s/g, '_')}.pdf`);
+}
 
     async function verHistorico(idCli) {
         const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
@@ -415,6 +517,7 @@
     }
 
     async function setUsaFixo(id, val) { 
+        clientes[id].usar_valor_fixo = val; // Atualiza a memória na hora
         await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
             method:'PATCH', 
             body:JSON.stringify({usar_valor_fixo: val})
@@ -473,12 +576,44 @@
         await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes.json`, {method:'POST', body:JSON.stringify({nome:n, rua:r, numero:nu, leitura_atual:0, isento_tarifa:false, usar_valor_fixo:false})});
         fecharModais(); atualizarLista();
     }
+
     async function darBaixa(id) {
-        if(confirm("Confirmar recebimento?")) {
-            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${id}.json`, {method:'PATCH', body:JSON.stringify({pago:true})});
+    if(confirm("Confirmar recebimento?")) {
+        try {
+            // 1. Busca a cobrança específica no Firebase
+            const respCob = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${id}.json`);
+            const cobranca = await respCob.json();
+            
+            // 2. Garante que o valor seja um número (se vier vazio ou texto, vira 0)
+            // Verifique se no seu Firebase o campo é 'valor_total' ou 'valor'
+            const valorPago = parseFloat(cobranca.valor_total || cobranca.valor || 0);
+
+            // 3. Atualiza para pago no Firebase
+            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${id}.json`, {
+                method:'PATCH', 
+                body:JSON.stringify({pago:true})
+            });
+
+            // 4. Pega os dados do cliente e data
+            const clienteAtual = clientes[idSelecionado]; 
+            const dataHoje = new Date().toLocaleDateString('pt-BR');
+
+            alert("Pagamento registrado com sucesso!");
+
+            // 5. Gera o recibo com o valor já corrigido
+            gerarReciboPagamento(clientes[idSelecionado], valorPago, dataHoje);
+
+            // 6. Atualiza a interface
             exibirCliente(idSelecionado);
+            
+        } catch (e) {
+            console.error("Erro ao dar baixa:", e);
+            alert("Erro ao processar pagamento ou gerar recibo.");
         }
     }
+
+    
+}
     async function setIsencao(id, val) { 
         await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {method:'PATCH', body:JSON.stringify({isento_tarifa: val})}); 
         clientes[id].isento_tarifa = val;
