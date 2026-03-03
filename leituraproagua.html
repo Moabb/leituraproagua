@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>ESCRITÓRIO - LEITURA PRO ÁGUA 💰</title>
+    <title>LEITURA PRO ÁGUA 💰</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
@@ -534,7 +534,7 @@
             if(cobs[id].id_cliente === idCli && !cobs[id].pago) {
                 p.innerHTML += `<div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; background:#fff;">
                     <span>📅 ${cobs[id].data_leitura} | <b>R$ ${cobs[id].valor.toFixed(2)}</b></span>
-                    <button class="btn btn-laranja" onclick="darBaixa('${id}')">BAIXA</button>
+                    <button class="btn btn-laranja" onclick="darBaixa('${id}')">DAR BAIXA</button>
                 </div>`;
             }
         }
