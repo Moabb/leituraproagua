@@ -3,31 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MASTER - Leitura Pro Água</title>
+    <title>MASTER - Leitura Pro Água 🛡️</title>
     <style>
-        :root { --azul: #1f538d; --danger: #d32f2f; --success: #388e3c; }
+        :root { --azul: #1f538d; --danger: #d32f2f; --success: #388e3c; --cinza: #666; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 950px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 1000px; margin: auto; }
         
-        /* LOGIN SCREEN */
         #login-screen { position: fixed; inset: 0; background: var(--azul); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .login-box { background: white; padding: 30px; border-radius: 12px; width: 300px; text-align: center; }
         
-        /* TABELA E INPUTS */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
         th { background: var(--azul); color: white; }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; width: 90%; }
-        .btn { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; }
+        
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; width: 95%; box-sizing: border-box; }
+        .btn { border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; margin: 2px; }
         .btn-add { background: var(--azul); width: 100%; margin-top: 10px; }
-        .btn-status { font-size: 11px; min-width: 80px; }
+        .btn-edit { background: #f39c12; font-size: 11px; }
+        .btn-del { background: var(--danger); font-size: 11px; }
+        
+        .badge-vencido { color: white; background: var(--danger); padding: 2px 6px; border-radius: 4px; font-size: 10px; }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
         <div class="login-box">
-            <h2 style="color: var(--azul)">Leitura Pro Água</br>Painel Master</h2>
+            <h2 style="color: var(--azul)">Leitura Pro Água<br>Painel Master</h2>
             <input type="text" id="user-input" placeholder="Usuário">
             <input type="password" id="pass-input" placeholder="Senha">
             <button class="btn btn-add" id="btn-entrar" onclick="autenticar()">ENTRAR</button>
@@ -36,36 +38,41 @@
     </div>
 
     <div id="painel" style="display: none;" class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2>Gerenciador de Licenças e Vencimentos</h2>
-            <a href="https://moabb.github.io/leituraproagua/manual.pdf" target="_blank"><button class="btn" style="background:#666">Manual.pdf</button></a>
-            <button class="btn" style="background:#666" onclick="location.reload()">Sair</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Gerenciador de Licenças Multi-Acesso</h2>
+            <div>
+                <button class="btn" style="background:var(--cinza)" onclick="location.reload()">Sair</button>
+            </div>
         </div>
         
-        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; display: flex; gap: 10px; align-items: flex-end;">
-            <div style="flex: 2">
-                <label style="font-size: 12px; font-weight: bold;">Cliente</label><br>
-                <input type="text" id="nome-cli" placeholder="Ex: HP - João" style="margin-bottom:0">
+        <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 5px solid var(--azul);">
+            <h4 style="margin:0 0 10px 0">Cadastrar Novo Terminal / Licença</h4>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="font-size: 11px; font-weight: bold;">NOME DO CLIENTE / COMUNIDADE</label>
+                    <input type="text" id="nome-cli" placeholder="Ex: Poções - Central">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="font-size: 11px; font-weight: bold;">ID DA MÁQUINA (Terminal)</label>
+                    <input type="text" id="id-maquina" placeholder="Cole o ID aqui">
+                </div>
+                <div style="flex: 1; min-width: 150px;">
+                    <label style="font-size: 11px; font-weight: bold;">DATA DE EXPIRAÇÃO</label>
+                    <input type="text" id="data-exp" placeholder="DD/MM/AAAA">
+                </div>
+                <div style="flex: 0.5; display: flex; align-items: flex-end; padding-bottom: 10px;">
+                    <button class="btn btn-add" onclick="salvarLicenca()" style="margin:0; height: 40px;">CADASTRAR</button>
+                </div>
             </div>
-            <div style="flex: 2">
-                <label style="font-size: 12px; font-weight: bold;">ID Máquina</label><br>
-                <input type="text" id="id-maquina" placeholder="Ex: -BFEBFBFF..." style="margin-bottom:0">
-            </div>
-            <div style="flex: 1">
-                <label style="font-size: 12px; font-weight: bold;">Expiração</label><br>
-                <input type="text" id="data-exp" placeholder="28/02/2026" style="margin-bottom:0">
-            </div>
-            <div style="flex: 1">
-                <button class="btn btn-add" onclick="salvarLicenca()" style="margin:0">CADASTRAR</button>
-            </div>
+            <small style="color: #666;">* Para dar acesso a dois computadores, cadastre o ID de cada um com o mesmo nome de cliente.</small>
         </div>
 
         <table>
             <thead>
                 <tr>
-                    <th>Cliente</th>
+                    <th>Terminal / Cliente</th>
                     <th>ID da Máquina</th>
-                    <th>Expiração</th>
+                    <th>Vencimento</th>
                     <th>Status</th>
                     <th>Ações</th>
                 </tr>
@@ -80,34 +87,17 @@
         async function autenticar() {
             const userIn = document.getElementById('user-input').value.trim();
             const passIn = document.getElementById('pass-input').value.trim();
-            const btn = document.getElementById('btn-entrar');
-            const msg = document.getElementById('msg-erro');
-
-            btn.innerText = "Verificando...";
-            
             try {
                 const r = await fetch(`${URL_BASE}/admin.json`);
                 const admin = await r.json();
-
-                // O .trim() remove espaços vazios antes e depois do texto
-                // Comparamos o que vem do Firebase (admin.senha) com o que você digitou (passIn)
-                if (admin && 
-                    admin.usuario.trim() === userIn && 
-                    admin.senha.trim() === passIn) {
-                    
+                if (admin && admin.usuario.trim() === userIn && admin.senha.trim() === passIn) {
                     document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('painel').style.display = 'block';
                     carregarDados();
                 } else {
-                    msg.style.display = "block";
-                    btn.innerText = "ENTRAR";
-                    // Dica extra: limpa o campo de senha se errar
-                    document.getElementById('pass-input').value = ""; 
+                    document.getElementById('msg-erro').style.display = "block";
                 }
-            } catch (e) {
-                alert("Erro ao conectar ao banco de dados!");
-                btn.innerText = "ENTRAR";
-            }
+            } catch (e) { alert("Erro de conexão!"); }
         }
 
         async function carregarDados() {
@@ -115,57 +105,71 @@
             const dados = await r.json();
             const corpo = document.getElementById('tabela-corpo');
             corpo.innerHTML = "";
-        
             if(!dados) return;
-        
+
             const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0); // Zera as horas para comparação justa
-        
-            for (let id_key in dados) {
-                const item = dados[id_key];
-                const ativo = item.ativo === true || item.ativo === "true";
-                
-                // --- LÓGICA DE ALERTA DE VENCIMENTO ---
-                let avisoVencimento = "";
-                let estiloLinha = "";
-                
-                if (item.expiracao) {
-                    // Converte a data do formato DD/MM/AAAA para objeto Date
-                    const partes = item.expiracao.split("/");
-                    const dataExp = new Date(partes[2], partes[1] - 1, partes[0]);
-                    
-                    // Calcula a diferença em dias
-                    const diffTempo = dataExp - hoje;
-                    const diffDias = Math.ceil(diffTempo / (1000 * 60 * 60 * 24));
-        
-                    if (diffDias <= 0 && ativo) {
-                        avisoVencimento = "<br><small style='color:red'><b>🔴 EXPIRADO HOJE!</b></small>";
-                        estiloLinha = "background-color: #ffebee;"; // Vermelho bem clarinho
-                    } else if (diffDias > 0 && diffDias <= 10) {
-                        avisoVencimento = `<br><small style='color:#856404'><b>⚠️ VENCE EM ${diffDias} DIAS</b></small>`;
-                        estiloLinha = "background-color: #fff3cd;"; // Amarelo de atenção
-                    }
-                }
-                // --------------------------------------
-        
+            hoje.setHours(0,0,0,0);
+
+            // 1. AGRUPAMENTO POR CLIENTE
+            const grupos = {};
+            for (let id_maquina in dados) {
+                const item = dados[id_maquina];
+                const nomeGrupo = item.nome || "SEM NOME";
+                if (!grupos[nomeGrupo]) grupos[nomeGrupo] = [];
+                grupos[nomeGrupo].push({ id_dispositivo: id_maquina, ...item });
+            }
+
+            // 2. RENDERIZAÇÃO COM LÓGICA DE ALERTA VOLTADA
+            for (let nomeCliente in grupos) {
+                // Linha do Cliente (Pai)
                 corpo.innerHTML += `
-                    <tr style="${estiloLinha}">
-                        <td>
-                            <strong>${item.nome || '---'}</strong>
-                            ${avisoVencimento}
-                        </td>
-                        <td><code>${id_key}</code></td>
-                        <td>${item.expiracao || '---'}</td>
-                        <td>
-                            <button class="btn btn-status" style="background:${ativo?'#28a745':'#dc3545'}" 
-                                onclick="alternarStatus('${id_key}', ${ativo})">
-                                ${ativo ? 'ATIVO' : 'BLOQUEADO'}
-                            </button>
-                        </td>
-                        <td>
-                            <button class="btn" style="background:#666; font-size:10px" onclick="excluirLicenca('${id_key}')">Excluir</button>
-                        </td>
+                    <tr style="background-color: #f1f1f1;">
+                        <td colspan="5"><strong>📁 CLIENTE: ${nomeCliente}</strong></td>
                     </tr>`;
+
+                grupos[nomeCliente].forEach(item => {
+                    const ativo = item.ativo === true;
+                    let alerta = "";
+                    let estiloLinha = "";
+                    
+                    if (item.expiracao) {
+                        // Converter DD/MM/AAAA para Date
+                        const p = item.expiracao.split("/");
+                        const dExp = new Date(p[2], p[1]-1, p[0]);
+                        
+                        // Cálculo de diferença de dias
+                        const diffTempo = dExp - hoje;
+                        const diffDias = Math.ceil(diffTempo / (1000 * 60 * 60 * 24));
+
+                        if (diffDias < 0) {
+                            alerta = '<br><small style="color:red"><b>EXPIRADA</b></small>';
+                            estiloLinha = "background-color: #ffebee;"; // Fundo levemente vermelho
+                        } else if (diffDias <= 10) {
+                            alerta = `<br><small style="color:#856404"><b>VENCE EM ${diffDias} DIAS</b></small>`;
+                            estiloLinha = "background-color: #fff3cd;"; // Fundo levemente amarelo
+                        }
+                    }
+
+                    corpo.innerHTML += `
+                        <tr style="${estiloLinha}">
+                            <td style="padding-left: 40px;">
+                                |-> 💻 Terminal
+                                ${alerta}
+                            </td>
+                            <td><small><code>${item.id_dispositivo}</code></small></td>
+                            <td>${item.expiracao || '---'}</td>
+                            <td>
+                                <button class="btn" style="background:${ativo?'#28a745':'#dc3545'}; font-size:10px" 
+                                    onclick="alternarStatus('${item.id_dispositivo}', ${ativo})">
+                                    ${ativo ? 'ATIVO' : 'BLOQUEADO'}
+                                </button>
+                            </td>
+                            <td>
+                                <button class="btn btn-edit" onclick="editarData('${item.id_dispositivo}', '${item.expiracao}')">📅 Data</button>
+                                <button class="btn btn-del" onclick="excluirLicenca('${item.id_dispositivo}')">Excluir</button>
+                            </td>
+                        </tr>`;
+                });
             }
         }
 
@@ -174,17 +178,26 @@
             const nomeCli = document.getElementById('nome-cli').value.trim();
             const dataExp = document.getElementById('data-exp').value.trim();
 
-            if (!id || !nomeCli) return alert("Preencha o Nome e o ID!");
+            if (!id || !nomeCli || !dataExp) return alert("Preencha todos os campos!");
 
             await fetch(`${URL_BASE}/licencas/${id}.json`, {
                 method: 'PUT',
                 body: JSON.stringify({ nome: nomeCli, expiracao: dataExp, ativo: true })
             });
 
-            alert("Licença Salva!");
-            document.getElementById('id-maquina').value = "";
-            document.getElementById('nome-cli').value = "";
+            alert("Licença de terminal cadastrada!");
             carregarDados();
+        }
+
+        async function editarData(id, dataAtual) {
+            const novaData = prompt(`Nova data de expiração para ${id}:`, dataAtual);
+            if (novaData && novaData !== dataAtual) {
+                await fetch(`${URL_BASE}/licencas/${id}.json`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ expiracao: novaData })
+                });
+                carregarDados();
+            }
         }
 
         async function alternarStatus(id, statusAtual) {
@@ -196,7 +209,7 @@
         }
 
         async function excluirLicenca(id) {
-            if (confirm(`Excluir licença de ${id}?`)) {
+            if (confirm("Deseja remover este terminal permanentemente?")) {
                 await fetch(`${URL_BASE}/licencas/${id}.json`, { method: 'DELETE' });
                 carregarDados();
             }
@@ -204,8 +217,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
