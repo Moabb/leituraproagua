@@ -92,6 +92,7 @@
                 </div>
                 <div style="text-align: right;">
                     <button class="btn btn-vermelho" onclick="relatorioTodosDebitos()">TODOS DÉBITOS</button>
+                    <button class="btn" style="background:#8e44ad" onclick="definirPagamento()">PAGAMENTO</button>
                     <button class="btn btn-azul" onclick="definirPreco()">PREÇO?</button>
                     <button class="btn btn-azul" onclick="definirTarifa()">TARIFA?</button>
                     <button class="btn btn-azul" onclick="definirValorFixo()">FIXO?</button>
@@ -144,7 +145,7 @@
     // 2. Se não tiver, tenta pegar o ID que veio no link (URL)
     let ID_MAQUINA = localStorage.getItem('id_licenca_ativa') || new URLSearchParams(window.location.search).get('id');
 
-    let precoM3 = 0, taxaFixa = 0, valorFixoGlobal = 0, comunidade = "", clientes = {}, idSelecionado = null;
+    let precoM3 = 0, taxaFixa = 0, valorFixoGlobal = 0, comunidade = "", clientes = {}, idSelecionado = null, dadosPagamento = "";
 
     async function carregarConfig() {
         // Se o computador ainda não tem ID salvo, ele pergunta uma única vez
@@ -163,6 +164,8 @@
             const r = await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`);
             const d = await r.json();
             
+            dadosPagamento = d.dados_pagamento || "Não informado"; // Carrega o que estiver no Firebase
+
             // Verifica se a licença existe no seu Firebase
             if(!d || d.ativo !== true) {
                 // Se o ID for inválido, limpa a memória para permitir digitar outro
@@ -216,6 +219,19 @@
         }
     }
 
+    // Função para o botão definirPagamento
+    async function definirPagamento() {
+        let p = prompt("Dados para recebimento (Ex: PIX: 000.000.000-00 ou Banco X Ag 123):", dadosPagamento);
+        if (p !== null) {
+            await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {
+                method: 'PATCH',
+                body: JSON.stringify({ dados_pagamento: p })
+            });
+            dadosPagamento = p;
+            alert("Dados de pagamento atualizados com sucesso!");
+        }
+    }
+
     async function exibirCliente(id) {
         idSelecionado = id;
         const c = clientes[id];
@@ -257,12 +273,12 @@
 
                 <div style="background:#f0f7ff; padding:20px; border-radius:10px; margin-top:20px; display:flex; gap:15px; align-items:center; border: 1px solid #cde4ff;">
                     <div><strong>ANTERIOR (HIDRÔMETRO):</strong><br><span style="font-size:24px; color:var(--azul);">${ult} m³</span></div>
-                    <div style="flex-grow:1">
+                    <div style="width:20%; margin-top:-20px">
                         <strong>NOVA LEITURA:</strong>
                         <input class="pesquisa" type="number" id="inp-atual" placeholder="0000" style="font-size:18px; margin:0">
                     </div>
-                    <button class="btn btn-verde" style="height:45px" onclick="lancar('${id}', ${ult})">LANÇAR E GERAR PDF</button>
-                    <button class="btn btn-azul" style="height:45px" onclick="reimprimir('${id}')">REIMPRIMIR ÚLTIMA</button>
+                    <button class="btn btn-verde" style="height:45px; width:30%" onclick="lancar('${id}', ${ult})">LANÇAR E GERAR PDF</button>
+                    <button class="btn btn-azul" style="height:45px; width:30%" onclick="reimprimir('${id}')">REIMPRIMIR ÚLTIMA</button>
                 </div>
 
                 <h3 style="margin-top:30px; color:var(--vermelho)">DÉBITOS PENDENTES</h3>
@@ -410,10 +426,24 @@
     doc.text("DATA DE VENCIMENTO", 30, 155);
     doc.text(venc, 85, 155);
     
-    doc.text("TOTAL A PAGAR", 130, 155);
+    doc.text("TOTAL A PAGAR", 125, 155);
     doc.setFontSize(14);
     doc.setTextColor(200, 0, 0); 
-    doc.text(`R$ ${total.toFixed(2)}`, 165, 155);
+    doc.text(` R$ ${total.toFixed(2)}`, 160, 155);
+
+    // --- BLOCO DE PAGAMENTO ---
+    doc.setFillColor(400, 100, 0); // Fundo azul claro para destaque
+    doc.rect(20, 160, 170, 18, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(31, 83, 141);
+    doc.text("DADOS PARA PAGAMENTO", 25, 167);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.text(dadosPagamento, 25, 173); // Aqui imprime o que você digitou no sistema
 
     // --- RODAPÉ ---
     doc.setTextColor(100, 100, 100);
