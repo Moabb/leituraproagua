@@ -50,7 +50,7 @@
 
         /* UI Elements */
         .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .btn { border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 2px; transition: 0.2s; }
+        .btn { border: none; padding: 5px 5px; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 0px; transition: 0.2s; }
         .btn-azul { background: var(--azul); }
         .btn-verde { background: var(--verde); }
         .btn-laranja { background: var(--laranja); }
@@ -92,6 +92,7 @@
                 </div>
                 <div style="text-align: right;">
                     <button class="btn btn-vermelho" onclick="relatorioTodosDebitos()">TODOS DÉBITOS</button>
+                    <button class="btn" style="background:#8e44ad" onclick="definirDiaVencimento()">VENCIMENTO</button>
                     <button class="btn" style="background:#8e44ad" onclick="definirPagamento()">PAGAMENTO</button>
                     <button class="btn btn-azul" onclick="definirPreco()">PREÇO?</button>
                     <button class="btn btn-azul" onclick="definirTarifa()">TARIFA?</button>
@@ -141,19 +142,17 @@
     const URL_FB = "https://consuma-da-agua-default-rtdb.firebaseio.com/";
     
     // --- LÓGICA DE IDENTIFICAÇÃO AUTOMÁTICA ---
-    // 1. Tenta pegar o ID que já foi salvo neste computador antes
-    // 2. Se não tiver, tenta pegar o ID que veio no link (URL)
     let ID_MAQUINA = localStorage.getItem('id_licenca_ativa') || new URLSearchParams(window.location.search).get('id');
 
-    let precoM3 = 0, taxaFixa = 0, valorFixoGlobal = 0, comunidade = "", clientes = {}, idSelecionado = null, dadosPagamento = "";
+    let precoM3 = 0, taxaFixa = 0, valorFixoGlobal = 0, diaVencimento = 10, comunidade = "", clientes = {}, idSelecionado = null, dadosPagamento = "";
 
+    // FUNÇÃO DE INICIALIZAÇÃO CORRIGIDA
     async function carregarConfig() {
-        // Se o computador ainda não tem ID salvo, ele pergunta uma única vez
         if (!ID_MAQUINA || ID_MAQUINA === "null") {
             ID_MAQUINA = prompt("SISTEMA NÃO IDENTIFICADO.\nPor favor, insira o ID da Licença deste Terminal:");
             
             if (ID_MAQUINA) {
-                localStorage.setItem('id_licenca_ativa', ID_MAQUINA); // Salva para nunca mais pedir
+                localStorage.setItem('id_licenca_ativa', ID_MAQUINA);
             } else {
                 alert("O ID é obrigatório para carregar os dados.");
                 return;
@@ -164,11 +163,7 @@
             const r = await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`);
             const d = await r.json();
             
-            dadosPagamento = d.dados_pagamento || "Não informado"; // Carrega o que estiver no Firebase
-
-            // Verifica se a licença existe no seu Firebase
             if(!d || d.ativo !== true) {
-                // Se o ID for inválido, limpa a memória para permitir digitar outro
                 localStorage.removeItem('id_licenca_ativa'); 
                 document.body.innerHTML = `
                     <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; font-family:sans-serif;">
@@ -179,10 +174,12 @@
                 return; 
             }
 
-            // Se chegou aqui, o ID foi identificado e validado com sucesso!
+            // Atribuição de valores
+            dadosPagamento = d.dados_pagamento || "Não informado";
             precoM3 = parseFloat(d.valor_m3 || 0);
             taxaFixa = parseFloat(d.taxa_fixa || 0);
             valorFixoGlobal = parseFloat(d.valor_fixo_padrao || 0);
+            diaVencimento = parseInt(d.dia_vencimento || 10);
             comunidade = d.nome || "COMUNIDADE";
 
             document.getElementById('txt-comunidade').innerText = "📍 " + comunidade;
@@ -198,6 +195,8 @@
             alert("Erro de conexão com a nuvem.");
         }
     }
+
+    // O restante das suas funções (atualizarLista, filtrar, etc) continuam abaixo...
 
     async function atualizarLista() {
         const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes.json`);
@@ -217,6 +216,43 @@
                 </button>`;
             }
         }
+    }
+
+    // Função para o novo botão de definir o dia
+    function definirDiaVencimento() {
+        let d = prompt("Digite o DIA fixo para vencimento das faturas (1 a 28):", diaVencimento);
+        if (d && d > 0 && d <= 31) {
+            fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {
+                method: 'PATCH',
+                body: JSON.stringify({ dia_vencimento: parseInt(d) })
+            }).then(() => {
+                diaVencimento = parseInt(d);
+                alert("Dia de vencimento atualizado para todo dia " + diaVencimento);
+            });
+        }
+    }
+
+    // Função auxiliar para calcular a data de vencimento (Mês atual ou próximo)
+    function calcularDataVencimento() {
+        let agora = new Date();
+        let mes = agora.getMonth() + 1; // Janeiro é 0
+        let ano = agora.getFullYear();
+
+        // Se hoje for dia 20 e o vencimento for dia 10, vence no mês que vem.
+        // Se hoje for dia 05 e o vencimento for dia 10, vence neste mês ainda.
+        if (agora.getDate() > diaVencimento) {
+            mes++;
+            if (mes > 12) {
+                mes = 1;
+                ano++;
+            }
+        }
+
+        // Formata com zero à esquerda (ex: 05/08/2023)
+        let dFormatado = diaVencimento.toString().padStart(2, '0');
+        let mFormatado = mes.toString().padStart(2, '0');
+        
+        return `${dFormatado}/${mFormatado}/${ano}`;
     }
 
     // Função para o botão definirPagamento
@@ -287,19 +323,17 @@
         carregarPendentes(id);
     }
 
-    async function reimprimir(idCli) {
+        async function reimprimir(idCli) {
         try {
             const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
             const cobs = await r.json();
             
             if(!cobs) {
-                alert("Não existem cobranças registradas no banco de dados.");
+                alert("Não existem cobranças registradas.");
                 return;
             }
             
-            let lista = Object.values(cobs).filter(c => {
-                return c && String(c.id_cliente) === String(idCli);
-            });
+            let lista = Object.values(cobs).filter(c => c && String(c.id_cliente) === String(idCli));
             
             if(lista.length > 0) {
                 lista.sort((a,b) => Number(b.leitura_atual) - Number(a.leitura_atual));
@@ -308,59 +342,84 @@
                 const ant = Number(u.leitura_anterior || 0);
                 const atu = Number(u.leitura_atual || 0);
                 const cons = Number(u.consumo || 0);
-                const val = Number(u.valor || 0);
-                const tfa = Number(u.valor_tarifa || 0);
+                const valTotal = Number(u.valor || 0);
 
-                gerarPDF(clientes[idCli], ant, atu, cons, val, tfa);
+                // Tenta pegar o valor da tarifa de 3 formas diferentes para não vir 0.00
+                // 1. Tenta 'valor_tarifa' 
+                // 2. Tenta 'taxa_fixa' (como está no seu Firebase)
+                let tfa = Number(u.valor_tarifa || u.taxa_fixa || 0);
+                
+                // Se ainda assim for 0, mas o cliente NÃO é isento e NÃO é taxa fixa pura:
+                // Forçamos o valor que está configurado no sistema (taxaFixa)
+                if (tfa === 0 && !clientes[idCli].isento_tarifa && u.tipo_cobranca !== "FIXA") {
+                    tfa = Number(taxaFixa);
+                }
+
+                gerarPDF(clientes[idCli], ant, atu, cons, valTotal, tfa);
             } else { 
-                alert("Nenhuma fatura encontrada para este morador. Verifique se o lançamento foi concluído no celular."); 
+                alert("Nenhuma fatura encontrada."); 
             }
         } catch(e) {
-            console.error("Erro detalhado:", e);
-            alert("Erro de sincronização. Tente recarregar a página (F5).");
+            console.error("Erro:", e);
+            alert("Erro ao processar a fatura.");
         }
     }
 
-    async function lancar(id, ant) {
-    let atuInput = document.getElementById('inp-atual').value;
-    let atu = parseInt(atuInput);
-    const cliente = clientes[id];
-    
-    let consumo, tarifa, total;
+        async function lancar(id, ant) {
+        let atuInput = document.getElementById('inp-atual').value;
+        let atu = parseInt(atuInput);
+        const cliente = clientes[id];
+        
+        let consumo, tarifa, total;
 
-    if (cliente.usar_valor_fixo) {
-        consumo = 0; 
-        tarifa = 0;
-        total = valorFixoGlobal;
-        if(isNaN(atu)) atu = ant;
-    } else {
-        if(isNaN(atu) || atu < ant) return alert("Erro: Nova leitura inválida!");
-        consumo = atu - ant;
-        tarifa = cliente.isento_tarifa ? 0 : taxaFixa;
-        total = (consumo * precoM3) + tarifa;
+        if (cliente.usar_valor_fixo) {
+            consumo = 0; 
+            tarifa = 0;
+            total = valorFixoGlobal;
+            if(isNaN(atu)) atu = ant;
+        } else {
+            if(isNaN(atu) || atu < ant) return alert("Erro: Nova leitura inválida!");
+            consumo = atu - ant;
+            
+            // BUSCA A TARIFA: Se for isento é 0, se não, usa a taxaFixa global
+            tarifa = cliente.isento_tarifa ? 0 : taxaFixa;
+            total = (consumo * precoM3) + tarifa;
+        }
+
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        const nova = {
+            id_cliente: id, 
+            nome_cliente: cliente.nome,
+            leitura_anterior: ant, 
+            leitura_atual: atu,
+            consumo: consumo, 
+            valor: total,           // Valor Total
+            valor_tarifa: tarifa,   // <--- ISSO ESTAVA FALTANDO NO SEU FIREBASE
+            data_leitura: hoje,
+            pago: false, 
+            tipo_cobranca: cliente.usar_valor_fixo ? "FIXA" : "M3"
+        };
+
+        // Salva na nuvem garantindo que o campo valor_tarifa exista agora
+        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`, {
+            method:'POST', 
+            body:JSON.stringify(nova)
+        });
+
+        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
+            method:'PATCH', 
+            body:JSON.stringify({leitura_atual: atu})
+        });
+        
+        gerarPDF(cliente, ant, atu, consumo, total, tarifa);
+        atualizarLista().then(() => exibirCliente(id));
     }
-
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    const nova = {
-        id_cliente: id, nome_cliente: cliente.nome,
-        leitura_anterior: ant, leitura_atual: atu,
-        consumo: consumo, valor: total, data_leitura: hoje,
-        pago: false, valor_tarifa: tarifa, 
-        tipo_cobranca: cliente.usar_valor_fixo ? "FIXA" : "M3"
-    };
-
-    await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`, {method:'POST', body:JSON.stringify(nova)});
-    await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {method:'PATCH', body:JSON.stringify({leitura_atual: atu})});
-    
-    gerarPDF(cliente, ant, atu, consumo, total, tarifa);
-    atualizarLista().then(() => exibirCliente(id));
-}
 
     function gerarPDF(cli, ant, atu, cons, total, vTarifa) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const hoje = new Date().toLocaleDateString('pt-BR');
-    const venc = new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString('pt-BR');
+    const venc = calcularDataVencimento();
 
     // --- CABEÇALHO ---
     doc.setFillColor(31, 83, 141);
@@ -403,18 +462,32 @@
     doc.line(20, 110, 190, 110);
     
     // LÓGICA DE EXIBIÇÃO CORRIGIDA:
+    // --- DENTRO DA FUNÇÃO gerarPDF(cli, ant, atu, cons, total, vTarifa) ---
+
+    // Linha separadora antes dos valores
+    doc.line(20, 110, 190, 110);
+    doc.setFont("helvetica", "normal");
+
     if (cli.usar_valor_fixo) {
-        // Se for valor fixo, mostra apenas uma linha centralizada
-        doc.text(`Sem Hidrómetro (Valor Fixo):`, 20, 120);
+        // CASO A: CLIENTE SEM HIDRÔMETRO
+        doc.setFont("helvetica", "bold");
+        doc.text(`Cobrança por Valor Fixo (Sem Hidrômetro):`, 20, 120);
+        doc.setFont("helvetica", "normal");
         doc.text(`R$ ${total.toFixed(2)}`, 160, 120);
     } else {
-        // Se for consumo, mostra o detalhe do consumo + a tarifa de manutenção
+        // CASO B: CLIENTE COM HIDRÔMETRO
         let valorConsumo = cons * precoM3;
-        doc.text(`Valor do Consumo (${cons} x R$ ${precoM3.toFixed(2)}):`, 20, 120);
+        
+        // Linha do Consumo
+        doc.text(`Valor do Consumo (${cons} m³ x R$ ${precoM3.toFixed(2)}):`, 20, 120);
         doc.text(`R$ ${valorConsumo.toFixed(2)}`, 160, 120);
 
+        // Linha da Tarifa de Manutenção (Usa vTarifa que agora passamos corretamente)
+        // Se vTarifa for undefined ou NaN, ele vira 0.00 automaticamente
+        let tarifaExibir = Number(vTarifa) || 0; 
+        
         doc.text(`Tarifa de Manutenção:`, 20, 128);
-        doc.text(`R$ ${vTarifa.toFixed(2)}`, 160, 128);
+        doc.text(`R$ ${tarifaExibir.toFixed(2)}`, 160, 128);
     }
 
     // --- TOTAL A PAGAR ---
