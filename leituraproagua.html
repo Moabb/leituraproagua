@@ -87,8 +87,8 @@
             <div class="topo-linha">
                 <div>
                     <button class="btn btn-preto" onclick="abrirModal('modal-cadastro')">NOVO CLIENTE</button>
-                    <button class="btn btn-azul" onclick="gerarQRAcesso()">QR ACESSO</button>
-                    <button class="btn btn-laranja" onclick="abrirModal('modal-operador')">OPERADORES</button>
+                    <button class="btn btn-laranja" style="background:#7f8c8d" onclick="abrirModal('modal-operador')">LEITURISTAS</button>
+                    <button class="btn btn-vermelho" onclick="trocarAssinatura()" style="background: #7f8c8d;">TROCAR ID</button>
                     <div id="txt-comunidade" style="margin-top:5px; font-weight:bold; color: var(--azul);">📍 Carregando...</div>
                 </div>
                 <div style="text-align: right;">
@@ -197,6 +197,17 @@
         }
     }
 
+
+    // Função para trocar a licença/assinatura ativa
+    function trocarAssinatura() {
+        if(confirm("Deseja encerrar o acesso desta licença e informar outro ID?")) {
+            localStorage.removeItem('id_licenca_ativa');
+            ID_MAQUINA = null;
+            location.reload(); // Isso vai disparar o prompt do carregarConfig() automaticamente
+        }
+    }
+
+
     // O restante das suas funções (atualizarLista, filtrar, etc) continuam abaixo...
 
     async function atualizarLista() {
@@ -292,9 +303,9 @@
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #eee; padding-bottom:15px; flex-wrap: wrap; gap: 10px;">
                     <h2 style="margin:0">CLIENTE: ${c.nome}</h2>
-                    <div>
-                        <button class="btn btn-laranja" onclick="editarCliente('${id}')">EDITAR</button>
+                    <div>                        
                         <button class="btn btn-vermelho" onclick="excluirCliente('${id}')">EXCLUIR</button>
+                        <button class="btn btn-laranja" onclick="editarCliente('${id}')">EDITAR</button>
                         <button class="btn btn-azul" onclick="verHistorico('${id}')">VER HISTÓRICO</button>
                     </div>
                 </div>
@@ -751,10 +762,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
