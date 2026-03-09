@@ -9,140 +9,64 @@
     
     
         <style>
-        :root { 
-            --azul: #1f538d; 
-            --laranja: #e67e22; 
-            --verde: #28a745; 
-            --vermelho: #d32f2f; 
-            --bg: #f4f7f6; 
-        }
+        :root { --azul: #1f538d; --laranja: #e67e22; --verde: #28a745; --vermelho: #d32f2f; --bg: #f4f7f6; --cinza: #34495e; }
+        
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
 
-        /* Reset para Mobile: Removemos o 'overflow: hidden' e o 'height: 100vh' */
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background: var(--bg); 
-            margin: 0; 
-            display: flex; 
-            flex-direction: column; /* Elementos um abaixo do outro */
-            min-height: 100vh;
-            overflow-y: auto; 
-        }
+        /* BARRA DE BUSCA */
+        .sidebar { width: 100%; background: white; border-bottom: 2px solid var(--azul); position: sticky; top: 0; z-index: 100; }
+        .search-box { padding: 10px; }
+        .client-list { max-height: 150px; overflow-y: auto; padding: 10px; background: #fff; border-bottom: 1px solid #ddd; }
+        .btn-cliente { width: 100%; padding: 12px; margin-bottom: 5px; border: 1px solid #eee; background: #fff; border-radius: 8px; text-align: left; }
 
-        /* BARRA DE PESQUISA (Fica fixa no topo para facilitar) */
-        .sidebar { 
+        /* MENU TIPO DROPDOWN */
+        .topo { background: white; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        .menu-container { margin-bottom: 5px; width: 100%; }
+        
+        /* Botão Principal do Menu */
+        .btn-menu-pai { 
             width: 100%; 
-            background: white; 
-            border-bottom: 2px solid var(--azul); 
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .search-box { padding: 10px 15px; }
-
-        /* LISTA DE CLIENTES (Transformada em um carrossel horizontal ou lista curta) */
-        .client-list { 
-            max-height: 180px; 
-            overflow-y: auto; 
-            padding: 10px; 
-            background: #f9f9f9;
-        }
-        .btn-cliente { 
-            width: 100%; 
-            text-align: left; 
             padding: 15px; 
-            margin-bottom: 8px; 
-            border: 1px solid #ddd; 
-            background: #fff; 
-            border-radius: 8px; 
-            font-size: 16px; /* Fonte maior para leitura no celular */
-        }
-
-        /* CONTEÚDO PRINCIPAL */
-        .main { flex-grow: 1; display: flex; flex-direction: column; width: 100%; }
-
-        /* TOPO (Botões de Configuração) */
-        .topo { 
-            background: white; 
-            padding: 15px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-        }
-        .topo-linha {
-            display: grid;
-            grid-template-columns: 1fr 1fr; /* Botões em 2 colunas */
-            gap: 10px;
-        }
-        .topo-linha div { display: contents; } /* Desfaz a div para os botões obedecerem o grid */
-
-        /* PAINEL DO CLIENTE SELECIONADO */
-        .conteudo { padding: 15px; flex-grow: 1; }
-        .card { 
-            background: #fff; 
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-        }
-
-        /* BOTÕES GERAIS (Estilo "Touch") */
-        .btn { 
             border: none; 
-            padding: 15px 10px; 
             border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: bold; 
             color: white; 
-            font-size: 14px;
-            transition: 0.2s;
-            text-align: center;
+            font-weight: bold; 
+            font-size: 16px; 
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
         }
+        .bg-cadastro { background: var(--cinza); }
+        .bg-valores { background: var(--azul); }
+
+        /* Submenu (Escondido por padrão) */
+        .submenu { 
+            display: none; /* ESCONDIDO */
+            grid-template-columns: 1fr 1fr; 
+            gap: 8px; 
+            padding: 10px; 
+            background: #f1f1f1; 
+            border-radius: 0 0 8px 8px; 
+        }
+
+        /* Classe que o JS vai usar para mostrar o menu */
+        .submenu.aberto { display: grid; }
+
+        /* Botões dentro do menu */
+        .btn { border: none; padding: 12px; border-radius: 6px; color: white; font-weight: bold; font-size: 13px; cursor: pointer; }
         .btn-azul { background: var(--azul); }
         .btn-verde { background: var(--verde); }
         .btn-laranja { background: var(--laranja); }
         .btn-vermelho { background: var(--vermelho); }
         .btn-preto { background: #333; }
 
-        /* CAMPOS DE ENTRADA */
-        input { 
-            padding: 15px; 
-            border: 1px solid #ddd; 
-            border-radius: 8px; 
-            width: 100%; 
-            box-sizing: border-box; 
-            margin-bottom: 10px; 
-            font-size: 16px; /* Evita que o iPhone dê zoom automático no input */
-        }
-
-        /* ÁREA DE LANÇAMENTO (HIDRÔMETRO) */
-        /* Ajusta para os elementos ficarem um abaixo do outro no celular */
-        div[style*="display:flex; gap:15px"] {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            background: #f0f7ff !important;
-        }
-        div[style*="width:20%"] { width: 100% !important; }
-
-        /* OPÇÕES DO CLIENTE (CHECKBOXES) */
-        .opcoes-cliente { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .checkbox { width: 25px !important; height: 25px; margin-right: 10px; vertical-align: middle; }
-
-        /* MODAL (Ocupa quase a tela toda) */
-        .modal-body { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 12px; 
-            width: 95%; 
-            max-height: 90vh; 
-            overflow-y: auto; 
-        }
-        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center; }
-
-        /* TABELAS (Permite rolar para o lado se for grande) */
-        table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; min-width: 100px; }
-
-        /* TEXTOS */
-        #txt-comunidade { font-size: 18px; margin-bottom: 10px; }
-        #lbl-info { background: #eee; padding: 10px; border-radius: 5px; text-align: center; }
-
+        /* Outros ajustes */
+        .conteudo { padding: 15px; }
+        input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; box-sizing: border-box; }
+        #txt-comunidade { text-align: center; font-weight: bold; color: var(--azul); margin: 5px 0; }
     </style>
 </head>
 <body>
@@ -157,23 +81,31 @@
 
     <div class="main">
         <div class="topo">
-            <div class="topo-linha">
-                <div>
+            <div id="txt-comunidade">📍 Carregando...</div>
+
+            <div class="menu-container">
+                <button class="btn-menu-pai bg-cadastro" onclick="toggleMenu('menu-cad')">📂 CADASTRO <span>▼</span></button>
+                <div id="menu-cad" class="submenu">
                     <button class="btn btn-preto" onclick="abrirModal('modal-cadastro')">NOVO CLIENTE</button>
-                    <button class="btn btn-laranja" style="background:#7f8c8d" onclick="abrirModal('modal-operador')">LEITURISTAS</button>
-                    <button class="btn btn-vermelho" onclick="trocarAssinatura()" style="background: #7f8c8d;">TROCAR ID</button>
-                    <div id="txt-comunidade" style="margin-top:5px; font-weight:bold; color: var(--azul);">📍 Carregando...</div>
+                    <button class="btn btn-vermelho" onclick="trocarAssinatura()">TROCAR ID</button>
+                    <button class="btn btn-laranja" onclick="abrirModal('modal-operador')">LEITURISTA</button>
+                    <button class="btn btn-azul" onclick="gerarQRAcesso()">QR ACESSO</button>
                 </div>
-                <div style="text-align: right;">
+            </div>
+
+            <div class="menu-container">
+                <button class="btn-menu-pai bg-valores" onclick="toggleMenu('menu-val')">💰 VALORES <span>▼</span></button>
+                <div id="menu-val" class="submenu">
                     <button class="btn btn-vermelho" onclick="relatorioTodosDebitos()">TODOS DÉBITOS</button>
                     <button class="btn" style="background:#8e44ad" onclick="definirDiaVencimento()">VENCIMENTO</button>
                     <button class="btn" style="background:#8e44ad" onclick="definirPagamento()">PAGAMENTO</button>
                     <button class="btn btn-azul" onclick="definirPreco()">PREÇO?</button>
                     <button class="btn btn-azul" onclick="definirTarifa()">TARIFA?</button>
                     <button class="btn btn-azul" onclick="definirValorFixo()">VALOR FIXO?</button>
-                    <div id="lbl-info" style="margin-top:5px; font-size:13px; font-weight: bold; color: #555;"></div>
                 </div>
             </div>
+            
+            <div id="lbl-info" style="font-size:12px; text-align:center; margin-top:5px;"></div>
         </div>
         <div class="conteudo" id="painel-cliente">
             <div style="text-align:center; color:#999; margin-top:100px;">
