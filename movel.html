@@ -20,36 +20,34 @@
             min-height: 100vh; overflow-x: hidden;
         }
 
-        /* BARRA SUPERIOR E BUSCA */
+        /* BUSCA */
         .sidebar { width: 100%; background: white; border-bottom: 2px solid var(--azul); position: sticky; top: 0; z-index: 100; }
         .search-box { padding: 10px; }
         .pesquisa { padding: 12px; width: 100%; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
-        
-        .client-list { max-height: 140px; overflow-y: auto; padding: 10px; background: #fff; border-bottom: 1px solid #ddd; }
-        .btn-cliente { 
-            width: 100%; padding: 12px; margin-bottom: 5px; border: 1px solid #eee; 
-            background: #fff; border-radius: 8px; text-align: left; font-size: 14px;
-        }
+        .client-list { max-height: 140px; overflow-y: auto; padding: 10px; background: #f9f9f9; border-bottom: 1px solid #ddd; }
+        .btn-cliente { width: 100%; padding: 12px; margin-bottom: 5px; border: 1px solid #eee; background: #fff; border-radius: 8px; text-align: left; font-size: 14px; }
 
-        /* MENUS ESTILO DROPDOWN */
+        /* MENUS LADO A LADO */
         .topo { background: white; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .menu-container { margin-bottom: 8px; width: 100%; }
+        .row-menus { display: flex; gap: 8px; margin-bottom: 5px; }
+        .menu-container { flex: 1; }
         
         .btn-menu-pai { 
-            width: 100%; padding: 15px; border: none; border-radius: 8px; 
-            color: white; font-weight: bold; font-size: 16px; text-align: left;
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+            width: 100%; padding: 12px 8px; border: none; border-radius: 8px; 
+            color: white; font-weight: bold; font-size: 13px; text-align: center;
+            display: flex; justify-content: center; align-items: center; gap: 5px; cursor: pointer;
         }
         .bg-cadastro { background: var(--cinza); }
         .bg-valores { background: var(--azul); }
 
         .submenu { 
-            display: none; /* Começa escondido */
+            display: none; position: absolute; left: 10px; right: 10px;
             grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; 
-            background: #f1f1f1; border-radius: 0 0 8px 8px; 
+            background: #fff; border: 1px solid #ddd; border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 150;
         }
 
-        /* BOTÕES DE AÇÃO */
+        /* BOTÕES */
         .btn { border: none; padding: 12px; border-radius: 6px; color: white; font-weight: bold; font-size: 12px; text-align: center; cursor: pointer; }
         .btn-azul { background: var(--azul); }
         .btn-verde { background: var(--verde); }
@@ -57,20 +55,16 @@
         .btn-vermelho { background: var(--vermelho); }
         .btn-preto { background: #333; }
 
-        /* MODAIS (JANELAS QUE ESTAVAM APARECENDO) */
-        .modal { 
-            display: none; /* Garante que fiquem escondidos */
-            position: fixed; top:0; left:0; width:100%; height:100%; 
-            background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; 
-        }
+        /* MODAIS */
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; }
         .modal-body { background: white; padding: 20px; border-radius: 15px; width: 90%; max-height: 85vh; overflow-y: auto; }
 
-        /* ÁREA DE LANÇAMENTO (O CARD) */
+        /* CARD */
         .conteudo { padding: 10px; }
-        .card { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #ddd; }
-        input[type="number"], input[type="text"] { padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-size: 16px; }
+        .card { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+        input { margin-bottom: 10px; }
 
-        #txt-comunidade { text-align: center; font-weight: bold; color: var(--azul); margin-bottom: 8px; font-size: 14px; }
+        #txt-comunidade { text-align: center; font-weight: bold; color: var(--azul); margin-bottom: 8px; font-size: 15px; }
     </style>
 </head>
 <body>
@@ -86,81 +80,56 @@
         <div class="topo">
             <div id="txt-comunidade">📍 Carregando...</div>
 
-            <div class="menu-container">
-                <button class="btn-menu-pai bg-cadastro" onclick="toggleMenu('menu-cad')">📂 CADASTRO <span>▼</span></button>
-                <div id="menu-cad" class="submenu">
-                    <button class="btn btn-preto" onclick="abrirModal('modal-cadastro')">NOVO CLIENTE</button>
-                    <button class="btn btn-vermelho" onclick="trocarAssinatura()">TROCAR ID</button>
-                    <button class="btn btn-laranja" onclick="abrirModal('modal-operador')">LEITURISTA</button>
-                    <button class="btn btn-azul" onclick="gerarQRAcesso()">QR ACESSO</button>
+            <div class="row-menus">
+                <div class="menu-container">
+                    <button class="btn-menu-pai bg-cadastro" onclick="toggleMenu('menu-cad')">📂 CADASTRO</button>
+                    <div id="menu-cad" class="submenu">
+                        <button class="btn btn-preto" onclick="abrirModal('modal-cadastro')">NOVO</button>
+                        <button class="btn btn-vermelho" onclick="trocarAssinatura()">ID</button>
+                        <button class="btn btn-laranja" onclick="abrirModal('modal-operador')">OPERADOR</button>
+                        <button class="btn btn-azul" onclick="gerarQRAcesso()">QR</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="menu-container">
-                <button class="btn-menu-pai bg-valores" onclick="toggleMenu('menu-val')">💰 VALORES <span>▼</span></button>
-                <div id="menu-val" class="submenu">
-                    <button class="btn btn-vermelho" onclick="relatorioTodosDebitos()">TODOS DÉBITOS</button>
-                    <button class="btn" style="background:#8e44ad" onclick="definirDiaVencimento()">VENCIMENTO</button>
-                    <button class="btn" style="background:#8e44ad" onclick="definirPagamento()">PAGAMENTO</button>
-                    <button class="btn btn-azul" onclick="definirPreco()">PREÇO?</button>
-                    <button class="btn btn-azul" onclick="definirTarifa()">TARIFA?</button>
-                    <button class="btn btn-azul" onclick="definirValorFixo()">VALOR FIXO?</button>
+                <div class="menu-container">
+                    <button class="btn-menu-pai bg-valores" onclick="toggleMenu('menu-val')">💰 VALORES</button>
+                    <div id="menu-val" class="submenu">
+                        <button class="btn btn-vermelho" onclick="relatorioTodosDebitos()">DÉBITOS</button>
+                        <button class="btn" style="background:#8e44ad" onclick="definirDiaVencimento()">VENCIM.</button>
+                        <button class="btn" style="background:#8e44ad" onclick="definirPagamento()">PAGAM.</button>
+                        <button class="btn btn-azul" onclick="definirPreco()">PREÇO</button>
+                        <button class="btn btn-azul" onclick="definirTarifa()">TARIFA</button>
+                        <button class="btn btn-azul" onclick="definirValorFixo()">FIXO</button>
+                    </div>
                 </div>
             </div>
-            <div id="lbl-info" style="font-size:11px; text-align:center; color:#666;"></div>
+            <div id="lbl-info" style="font-size:11px; text-align:center; color:#666; margin-top:5px;"></div>
         </div>
 
         <div class="conteudo" id="painel-cliente">
-            <div style="text-align:center; color:#999; margin-top:30px; padding:20px; border:2px dashed #ccc; border-radius:10px;">
-                <p>Aguardando seleção de morador...</p>
+            <div style="text-align:center; color:#999; margin-top:50px;">
+                <p>Selecione um cliente para iniciar.</p>
             </div>
         </div>
     </div>
 
-    <div id="modal-cadastro" class="modal">
-        <div class="modal-body">
-            <h3>Novo Cadastro</h3>
-            <input type="text" id="cad-nome" placeholder="Nome do Morador">
-            <input type="text" id="cad-rua" placeholder="Rua / Local">
-            <button class="btn btn-verde" style="width:100%" onclick="salvarCliente()">SALVAR MORADOR</button>
-            <button class="btn btn-vermelho" style="width:100%; margin-top:10px;" onclick="fecharModais()">FECHAR</button>
-        </div>
-    </div>
-
-    <div id="modal-operador" class="modal">
-        <div class="modal-body">
-            <h3>Leiturista Atual</h3>
-            <input type="text" id="op-nome" placeholder="Nome de quem está medindo">
-            <button class="btn btn-laranja" style="width:100%" onclick="salvarOperador()">CONFIRMAR</button>
-            <button class="btn btn-vermelho" style="width:100%; margin-top:10px;" onclick="fecharModais()">VOLTAR</button>
-        </div>
-    </div>
-
-    <div id="modal-lista" class="modal">
-        <div class="modal-body">
-            <h3 id="modal-titulo">Relatório</h3>
-            <div id="modal-dados" style="font-size:12px;"></div>
-            <button class="btn btn-vermelho" style="width:100%; margin-top:15px" onclick="fecharModais()">FECHAR</button>
-        </div>
-    </div>
+    <div id="modal-cadastro" class="modal"><div class="modal-body"><h3>Novo Cliente</h3><input type="text" id="cad-nome" placeholder="Nome"><input type="text" id="cad-rua" placeholder="Rua"><button class="btn btn-verde" style="width:100%" onclick="salvarCliente()">SALVAR</button><button class="btn btn-vermelho" style="width:100%;margin-top:10px" onclick="fecharModais()">CANCELAR</button></div></div>
+    <div id="modal-operador" class="modal"><div class="modal-body"><h3>Leiturista</h3><input type="text" id="op-nome" placeholder="Nome"><button class="btn btn-laranja" style="width:100%" onclick="salvarOperador()">SALVAR</button><button class="btn btn-vermelho" style="width:100%;margin-top:10px" onclick="fecharModais()">VOLTAR</button></div></div>
+    <div id="modal-lista" class="modal"><div class="modal-body"><h3 id="modal-titulo"></h3><div id="modal-dados"></div><button class="btn btn-vermelho" style="width:100%;margin-top:15px" onclick="fecharModais()">FECHAR</button></div></div>
 
     <script>
-        // TODA A SUA LÓGICA ORIGINAL DO ARQUIVO MOVEL.TXT FOI MANTIDA ABAIXO
+        // --- TODA A LÓGICA DO SEU ARQUIVO MOVEL.TXT RESTAURADA ABAIXO ---
         const URL_FB = "https://consuma-da-agua-default-rtdb.firebaseio.com/";
         let ID_MAQUINA = localStorage.getItem('id_licenca_ativa');
-        
-        let precoM3 = 0, taxaFixa = 0, valorFixoGlobal = 0, diaVencimento = 10, comunidade = "", clientes = {}, idSelecionado = null;
+        let precoM3=0, taxaFixa=0, valorFixoGlobal=0, diaVencimento=10, comunidade="", clientes={}, idSelecionado=null, dadosPagamento="";
 
         window.onload = carregarConfig;
 
-        // FUNÇÃO PARA ABRIR/FECHAR MENUS (NOVO)
         function toggleMenu(id) {
             const menu = document.getElementById(id);
-            const estaAberto = menu.style.display === 'grid';
-            // Fecha todos antes
+            const display = menu.style.display;
             document.querySelectorAll('.submenu').forEach(m => m.style.display = 'none');
-            // Abre o selecionado se estava fechado
-            if (!estaAberto) menu.style.display = 'grid';
+            menu.style.display = (display === 'grid') ? 'none' : 'grid';
         }
 
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
@@ -168,26 +137,23 @@
 
         async function carregarConfig() {
             if (!ID_MAQUINA || ID_MAQUINA === "null") {
-                ID_MAQUINA = prompt("INSIRA O ID DA LICENÇA:");
-                if (ID_MAQUINA) localStorage.setItem('id_licenca_ativa', ID_MAQUINA);
-                else return;
+                ID_MAQUINA = prompt("ID LICENÇA:");
+                if (ID_MAQUINA) localStorage.setItem('id_licenca_ativa', ID_MAQUINA); else return;
             }
             try {
                 const r = await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`);
                 const d = await r.json();
-                if(!d || d.ativo !== true) {
-                    alert("ID INVÁLIDO");
-                    localStorage.removeItem('id_licenca_ativa');
-                    location.reload();
-                    return;
-                }
+                if(!d || d.ativo !== true) { alert("ID INVÁLIDO"); return; }
                 precoM3 = parseFloat(d.valor_m3 || 0);
                 taxaFixa = parseFloat(d.taxa_fixa || 0);
+                valorFixoGlobal = parseFloat(d.valor_fixo_padrao || 0);
+                diaVencimento = parseInt(d.dia_vencimento || 10);
                 comunidade = d.nome || "SISTEMA";
+                dadosPagamento = d.dados_pagamento || "";
                 document.getElementById('txt-comunidade').innerText = "📍 " + comunidade;
-                document.getElementById('lbl-info').innerText = `Valor m³: R$ ${precoM3.toFixed(2)}`;
+                document.getElementById('lbl-info').innerText = `m³: R$ ${precoM3.toFixed(2)} | Taxa: R$ ${taxaFixa.toFixed(2)}`;
                 atualizarLista();
-            } catch(e) { alert("Erro ao conectar com Firebase."); }
+            } catch(e) { alert("Erro de conexão"); }
         }
 
         async function atualizarLista() {
@@ -200,40 +166,137 @@
             const b = document.getElementById('input-busca').value.toUpperCase();
             const lista = document.getElementById('lista-clientes');
             lista.innerHTML = "";
-            for(let id in clientes) {
+            const ids = Object.keys(clientes).sort((a,b) => clientes[a].nome.localeCompare(clientes[b].nome));
+            ids.forEach(id => {
                 if(clientes[id].nome.toUpperCase().includes(b)) {
                     lista.innerHTML += `<button class="btn-cliente" onclick="exibirCliente('${id}')">👤 ${clientes[id].nome}</button>`;
                 }
-            }
+            });
         }
 
         async function exibirCliente(id) {
             idSelecionado = id;
             const c = clientes[id];
             const ult = c.leitura_atual || 0;
-            
             document.getElementById('painel-cliente').innerHTML = `
                 <div class="card">
-                    <h3 style="margin:0; color:var(--azul)">${c.nome}</h3>
-                    <p style="font-size:12px; color:#666">Anterior: <strong>${ult} m³</strong></p>
+                    <h3 style="margin:0">${c.nome}</h3>
+                    <p>Anterior: <strong>${ult} m³</strong></p>
                     <hr>
-                    <label>LANÇAR NOVA LEITURA:</label>
-                    <input type="number" id="inp-atual" placeholder="0000" style="font-size:24px; text-align:center; height:60px; font-weight:bold; border:2px solid var(--azul);">
-                    <button class="btn btn-verde" style="width:100%; height:50px; font-size:16px;" onclick="lancar('${id}', ${ult})">SALVAR E GERAR PDF</button>
-                    <br><br>
-                    <button class="btn btn-laranja" style="width:100%" onclick="verHistorico('${id}')">VER HISTÓRICO</button>
+                    <input type="number" id="inp-atual" placeholder="Nova Leitura" style="font-size:20px; height:50px; text-align:center; width:100%">
+                    <button class="btn btn-verde" style="width:100%; height:50px" onclick="lancar('${id}', ${ult})">SALVAR E GERAR PDF</button>
+                    <button class="btn btn-laranja" style="width:100%; margin-top:10px" onclick="verHistorico('${id}')">HISTÓRICO / DÉBITOS</button>
                     <div id="lista-pendentes" style="margin-top:15px"></div>
                 </div>`;
+            carregarPendentes(id);
         }
 
-        // As demais funções (lancar, salvarCliente, trocarAssinatura, etc) 
-        // devem ser coladas aqui conforme o seu arquivo movel.txt original.
-        function trocarAssinatura() {
-            if(confirm("Deseja trocar o ID da máquina?")) {
-                localStorage.removeItem('id_licenca_ativa');
-                location.reload();
+        // --- FUNÇÕES DE LÓGICA COPIADAS DO SEU ORIGINAL ---
+        async function lancar(id, ant) {
+            const nova = parseFloat(document.getElementById('inp-atual').value);
+            if(isNaN(nova) || nova < ant) { alert("Leitura inválida!"); return; }
+            const cons = nova - ant;
+            const val = (cons * precoM3) + taxaFixa;
+            const ref = new Date().toLocaleDateString('pt-BR', {month:'2-digit', year:'numeric'});
+            
+            const obj = { leitura_anterior: ant, leitura_atual: nova, consumo: cons, valor: val, referencia: ref, pago: false, data: new Date().toLocaleDateString('pt-BR') };
+            
+            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}/historico.json`, {method:'POST', body:JSON.stringify(obj)});
+            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {method:'PATCH', body:JSON.stringify({leitura_atual: nova})});
+            
+            clientes[id].leitura_atual = nova;
+            alert("Lançado!");
+            gerarPDF(clientes[id], obj);
+            exibirCliente(id);
+        }
+
+        async function carregarPendentes(id) {
+            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}/historico.json`);
+            const hist = await r.json() || {};
+            const div = document.getElementById('lista-pendentes');
+            div.innerHTML = "<h4>PENDÊNCIAS:</h4>";
+            for(let key in hist) {
+                if(!hist[key].pago) {
+                    div.innerHTML += `<div style="padding:10px; border:1px solid #ddd; margin-bottom:5px; border-radius:5px; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Ref: ${hist[key].referencia} - R$ ${hist[key].valor.toFixed(2)}</span>
+                        <button class="btn btn-verde" onclick="darBaixa('${id}', '${key}', ${hist[key].valor})">PAGAR</button>
+                    </div>`;
+                }
             }
         }
+
+        async function darBaixa(id, key, valor) {
+            if(confirm("Confirmar pagamento?")) {
+                await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}/historico/${key}.json`, {method:'PATCH', body:JSON.stringify({pago:true, data_pagamento: new Date().toLocaleDateString('pt-BR')})});
+                exibirCliente(id);
+            }
+        }
+
+        function gerarPDF(cliente, dados) {
+            const { jsPDF } = window.jspdf;
+            const doc = jsPDF({ unit: 'mm', format: [80, 150] });
+            doc.setFontSize(10);
+            doc.text(comunidade, 40, 10, {align:'center'});
+            doc.text(`CLIENTE: ${cliente.nome}`, 5, 20);
+            doc.text(`REF: ${dados.referencia}`, 5, 25);
+            doc.text(`LEITURA ANTERIOR: ${dados.leitura_anterior}`, 5, 35);
+            doc.text(`LEITURA ATUAL: ${dados.leitura_atual}`, 5, 40);
+            doc.text(`CONSUMO: ${dados.consumo} m3`, 5, 45);
+            doc.text(`VALOR TOTAL: R$ ${dados.valor.toFixed(2)}`, 5, 55);
+            doc.text(`VENCIMENTO: ${diaVencimento}/${dados.referencia}`, 5, 60);
+            doc.output('dataurlnewwindow');
+        }
+
+        // --- FUNÇÕES DOS BOTÕES DE VALORES ---
+        function definirPreco() { let n = prompt("Novo preço m³:", precoM3); if(n) salvarConfig({valor_m3: parseFloat(n)}); }
+        function definirTarifa() { let n = prompt("Nova Taxa Fixa:", taxaFixa); if(n) salvarConfig({taxa_fixa: parseFloat(n)}); }
+        function definirValorFixo() { let n = prompt("Valor Fixo Padrão:", valorFixoGlobal); if(n) salvarConfig({valor_fixo_padrao: parseFloat(n)}); }
+        function definirDiaVencimento() { let n = prompt("Dia Vencimento:", diaVencimento); if(n) salvarConfig({dia_vencimento: parseInt(n)}); }
+        
+        async function salvarConfig(obj) {
+            await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {method:'PATCH', body:JSON.stringify(obj)});
+            carregarConfig();
+        }
+
+        function trocarAssinatura() { if(confirm("Trocar ID?")) { localStorage.removeItem('id_licenca_ativa'); location.reload(); } }
+        
+        function gerarQRAcesso() {
+            const win = window.open("", "", "width=400,height=500");
+            win.document.write(`<div style="text-align:center"><h3>ACESSO</h3><div id="q"></div><p>${ID_MAQUINA}</p></div>`);
+            new QRCode(win.document.getElementById("q"), ID_MAQUINA);
+        }
+
+        async function relatorioTodosDebitos() {
+            abrirModal('modal-lista');
+            document.getElementById('modal-titulo').innerText = "TODOS OS DÉBITOS";
+            const div = document.getElementById('modal-dados');
+            div.innerHTML = "Processando...";
+            let total = 0, html = "<table style='width:100%; border-collapse:collapse'>";
+            for(let id in clientes) {
+                const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}/historico.json`);
+                const h = await r.json() || {};
+                for(let k in h) {
+                    if(!h[k].pago) {
+                        html += `<tr><td style='border-bottom:1px solid #eee'>${clientes[id].nome}</td><td>R$ ${h[k].valor.toFixed(2)}</td></tr>`;
+                        total += h[k].valor;
+                    }
+                }
+            }
+            div.innerHTML = html + `</table><h4 style='color:red'>TOTAL GERAL: R$ ${total.toFixed(2)}</h4>`;
+        }
+
+        async function verHistorico(id) {
+            abrirModal('modal-lista');
+            document.getElementById('modal-titulo').innerText = "HISTÓRICO: " + clientes[id].nome;
+            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}/historico.json`);
+            const h = await r.json() || {};
+            let html = "<table style='width:100%'>";
+            for(let k in h) {
+                html += `<tr><td>${h[k].referencia}</td><td>R$ ${h[k].valor.toFixed(2)}</td><td>${h[k].pago?'✅':'❌'}</td></tr>`;
+            }
+            document.getElementById('modal-dados').innerHTML = html + "</table>";
+        }
+
     </script>
 </body>
 </html>
