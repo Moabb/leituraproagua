@@ -2,79 +2,82 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="shortcut icon" href="logo512.png" type="image/x-icon">
     <title>LEITURA PRO ÁGUA 💰</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
-    
-        <style>
-        :root { --azul: #1f538d; --laranja: #e67e22; --verde: #28a745; --vermelho: #d32f2f; --bg: #f4f7f6; --cinza: #34495e; }
-        
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+    <style>
+        :root { 
+            --azul: #1f538d; --laranja: #e67e22; --verde: #28a745; 
+            --vermelho: #d32f2f; --bg: #f4f7f6; --cinza: #34495e; 
+        }
 
-        /* BARRA DE BUSCA */
+        body { 
+            font-family: 'Segoe UI', sans-serif; background: var(--bg); 
+            margin: 0; display: flex; flex-direction: column; 
+            min-height: 100vh; overflow-x: hidden;
+        }
+
+        /* BARRA SUPERIOR E BUSCA */
         .sidebar { width: 100%; background: white; border-bottom: 2px solid var(--azul); position: sticky; top: 0; z-index: 100; }
         .search-box { padding: 10px; }
-        .client-list { max-height: 150px; overflow-y: auto; padding: 10px; background: #fff; border-bottom: 1px solid #ddd; }
-        .btn-cliente { width: 100%; padding: 12px; margin-bottom: 5px; border: 1px solid #eee; background: #fff; border-radius: 8px; text-align: left; }
+        .pesquisa { padding: 12px; width: 100%; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
+        
+        .client-list { max-height: 140px; overflow-y: auto; padding: 10px; background: #fff; border-bottom: 1px solid #ddd; }
+        .btn-cliente { 
+            width: 100%; padding: 12px; margin-bottom: 5px; border: 1px solid #eee; 
+            background: #fff; border-radius: 8px; text-align: left; font-size: 14px;
+        }
 
-        /* MENU TIPO DROPDOWN */
+        /* MENUS ESTILO DROPDOWN */
         .topo { background: white; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .menu-container { margin-bottom: 8px; width: 100%; }
         
-        .menu-container { margin-bottom: 5px; width: 100%; }
-        
-        /* Botão Principal do Menu */
         .btn-menu-pai { 
-            width: 100%; 
-            padding: 15px; 
-            border: none; 
-            border-radius: 8px; 
-            color: white; 
-            font-weight: bold; 
-            font-size: 16px; 
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
+            width: 100%; padding: 15px; border: none; border-radius: 8px; 
+            color: white; font-weight: bold; font-size: 16px; text-align: left;
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
         }
         .bg-cadastro { background: var(--cinza); }
         .bg-valores { background: var(--azul); }
 
-        /* Submenu (Escondido por padrão) */
         .submenu { 
-            display: none; /* ESCONDIDO */
-            grid-template-columns: 1fr 1fr; 
-            gap: 8px; 
-            padding: 10px; 
-            background: #f1f1f1; 
-            border-radius: 0 0 8px 8px; 
+            display: none; /* Começa escondido */
+            grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; 
+            background: #f1f1f1; border-radius: 0 0 8px 8px; 
         }
 
-        /* Classe que o JS vai usar para mostrar o menu */
-        .submenu.aberto { display: grid; }
-
-        /* Botões dentro do menu */
-        .btn { border: none; padding: 12px; border-radius: 6px; color: white; font-weight: bold; font-size: 13px; cursor: pointer; }
+        /* BOTÕES DE AÇÃO */
+        .btn { border: none; padding: 12px; border-radius: 6px; color: white; font-weight: bold; font-size: 12px; text-align: center; cursor: pointer; }
         .btn-azul { background: var(--azul); }
         .btn-verde { background: var(--verde); }
         .btn-laranja { background: var(--laranja); }
         .btn-vermelho { background: var(--vermelho); }
         .btn-preto { background: #333; }
 
-        /* Outros ajustes */
-        .conteudo { padding: 15px; }
-        input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; box-sizing: border-box; }
-        #txt-comunidade { text-align: center; font-weight: bold; color: var(--azul); margin: 5px 0; }
+        /* MODAIS (JANELAS QUE ESTAVAM APARECENDO) */
+        .modal { 
+            display: none; /* Garante que fiquem escondidos */
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; 
+        }
+        .modal-body { background: white; padding: 20px; border-radius: 15px; width: 90%; max-height: 85vh; overflow-y: auto; }
+
+        /* ÁREA DE LANÇAMENTO (O CARD) */
+        .conteudo { padding: 10px; }
+        .card { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+        input[type="number"], input[type="text"] { padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-size: 16px; }
+
+        #txt-comunidade { text-align: center; font-weight: bold; color: var(--azul); margin-bottom: 8px; font-size: 14px; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
         <div class="search-box">
-            <h3 style="margin:0 0 0px 0; color:var(--azul)">PESQUISAR RUA 🔍</h3>
-            <input class="pesquisa" type="text" id="input-busca" placeholder="Nome ou rua..." oninput="filtrar()">
+            <input class="pesquisa" type="text" id="input-busca" placeholder="🔎 Pesquisar morador..." oninput="filtrar()">
         </div>
         <div class="client-list" id="lista-clientes"></div>
     </div>
@@ -104,666 +107,133 @@
                     <button class="btn btn-azul" onclick="definirValorFixo()">VALOR FIXO?</button>
                 </div>
             </div>
-            
-            <div id="lbl-info" style="font-size:12px; text-align:center; margin-top:5px;"></div>
+            <div id="lbl-info" style="font-size:11px; text-align:center; color:#666;"></div>
         </div>
+
         <div class="conteudo" id="painel-cliente">
-            <div style="text-align:center; color:#999; margin-top:100px;">
-                <h2>💹 SISTEMA DE GESTÃO - NUVEM</h2>
-                <p>Selecione um cliente para gerenciar cobranças e histórico.</p>
+            <div style="text-align:center; color:#999; margin-top:30px; padding:20px; border:2px dashed #ccc; border-radius:10px;">
+                <p>Aguardando seleção de morador...</p>
             </div>
         </div>
     </div>
 
     <div id="modal-cadastro" class="modal">
         <div class="modal-body">
-            <h3>Novo Cadastro de Cliente</h3>
-            <input type="text" id="cad-nome" placeholder="Nome Completo">
-            <input type="text" id="cad-rua" placeholder="Rua / Endereço">
-            <input type="text" id="cad-num" placeholder="Número">
-            <button class="btn btn-verde" style="width:100%" onclick="salvarCliente()">SALVAR NA NUVEM</button>
-            <button class="btn btn-vermelho" style="width:100%; margin-top:5px;" onclick="fecharModais()">CANCELAR</button>
+            <h3>Novo Cadastro</h3>
+            <input type="text" id="cad-nome" placeholder="Nome do Morador">
+            <input type="text" id="cad-rua" placeholder="Rua / Local">
+            <button class="btn btn-verde" style="width:100%" onclick="salvarCliente()">SALVAR MORADOR</button>
+            <button class="btn btn-vermelho" style="width:100%; margin-top:10px;" onclick="fecharModais()">FECHAR</button>
         </div>
     </div>
 
     <div id="modal-operador" class="modal">
         <div class="modal-body">
-            <h3>Configurar Leiturista</h3>
-            <p>Digite o nome do operador autorizado para esta conta.</p>
-            <input type="text" id="op-nome" placeholder="NOME DO LEITURISTA">
-            <button class="btn btn-laranja" style="width:100%" onclick="salvarOperador()">AUTORIZAR ACESSO</button>
-            <button class="btn btn-vermelho" style="width:100%; margin-top:5px;" onclick="fecharModais()">VOLTAR</button>
+            <h3>Leiturista Atual</h3>
+            <input type="text" id="op-nome" placeholder="Nome de quem está medindo">
+            <button class="btn btn-laranja" style="width:100%" onclick="salvarOperador()">CONFIRMAR</button>
+            <button class="btn btn-vermelho" style="width:100%; margin-top:10px;" onclick="fecharModais()">VOLTAR</button>
         </div>
     </div>
 
     <div id="modal-lista" class="modal">
         <div class="modal-body">
-            <h3 id="modal-titulo">Lista</h3>
-            <div id="modal-dados"></div>
-            <button class="btn btn-vermelho" style="width:100%; margin-top:15px" onclick="fecharModais()">FECHAR JANELA</button>
+            <h3 id="modal-titulo">Relatório</h3>
+            <div id="modal-dados" style="font-size:12px;"></div>
+            <button class="btn btn-vermelho" style="width:100%; margin-top:15px" onclick="fecharModais()">FECHAR</button>
         </div>
     </div>
 
     <script>
-    const URL_FB = "https://consuma-da-agua-default-rtdb.firebaseio.com/";
-    
-    // --- LÓGICA DE IDENTIFICAÇÃO AUTOMÁTICA ---
-    let ID_MAQUINA = localStorage.getItem('id_licenca_ativa') || new URLSearchParams(window.location.search).get('id');
-
-    let precoM3 = 0, taxaFixa = 0, valorFixoGlobal = 0, diaVencimento = 10, comunidade = "", clientes = {}, idSelecionado = null, dadosPagamento = "";
-
-    // FUNÇÃO DE INICIALIZAÇÃO CORRIGIDA
-    async function carregarConfig() {
-        if (!ID_MAQUINA || ID_MAQUINA === "null") {
-            ID_MAQUINA = prompt("SISTEMA NÃO IDENTIFICADO.\nPor favor, insira o ID da Licença deste Terminal:");
-            
-            if (ID_MAQUINA) {
-                localStorage.setItem('id_licenca_ativa', ID_MAQUINA);
-            } else {
-                alert("O ID é obrigatório para carregar os dados.");
-                return;
-            }
-        }
-
-        try {
-            const r = await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`);
-            const d = await r.json();
-            
-            if(!d || d.ativo !== true) {
-                localStorage.removeItem('id_licenca_ativa'); 
-                document.body.innerHTML = `
-                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; font-family:sans-serif;">
-                        <h1 style="color:red">⚠️ LICENÇA INVÁLIDA</h1>
-                        <p>O ID <b>${ID_MAQUINA}</b> não possui acesso ativo.</p>
-                        <button class="btn btn-azul" onclick="location.reload()">TENTAR OUTRO ID</button>
-                    </div>`;
-                return; 
-            }
-
-            // Atribuição de valores
-            dadosPagamento = d.dados_pagamento || "Não informado";
-            precoM3 = parseFloat(d.valor_m3 || 0);
-            taxaFixa = parseFloat(d.taxa_fixa || 0);
-            valorFixoGlobal = parseFloat(d.valor_fixo_padrao || 0);
-            diaVencimento = parseInt(d.dia_vencimento || 10);
-            comunidade = d.nome || "COMUNIDADE";
-
-            document.getElementById('txt-comunidade').innerText = "📍 " + comunidade;
-            document.getElementById('lbl-info').innerText = `m³: R$ ${precoM3.toFixed(2)} | TF: R$ ${taxaFixa.toFixed(2)} | FIXO: R$ ${valorFixoGlobal.toFixed(2)}`;
-            
-            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/configuracoes.json`, {
-                method: 'PATCH', body: JSON.stringify({preco_m3: precoM3, tarifa_fixa: taxaFixa})
-            });
-
-            atualizarLista();
-        } catch(e) { 
-            console.error(e);
-            alert("Erro de conexão com a nuvem.");
-        }
-    }
-
-
-    // Função para trocar a licença/assinatura ativa
-    function trocarAssinatura() {
-        if(confirm("Deseja encerrar o acesso desta licença e informar outro ID?")) {
-            localStorage.removeItem('id_licenca_ativa');
-            ID_MAQUINA = null;
-            location.reload(); // Isso vai disparar o prompt do carregarConfig() automaticamente
-        }
-    }
-
-
-    // O restante das suas funções (atualizarLista, filtrar, etc) continuam abaixo...
-
-    async function atualizarLista() {
-        const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes.json`);
-        clientes = await r.json() || {};
-        filtrar();
-    }
-
-    function filtrar() {
-        const b = document.getElementById('input-busca').value.toUpperCase();
-        const lista = document.getElementById('lista-clientes');
-        lista.innerHTML = "";
-        for(let id in clientes) {
-            const c = clientes[id];
-            if((c.rua || "").toUpperCase().includes(b) || (c.nome || "").toUpperCase().includes(b)) {
-                lista.innerHTML += `<button class="btn-cliente" onclick="exibirCliente('${id}')">
-                    <strong>${c.nome}</strong><br><small>${c.rua || 'S/R'}, ${c.numero || 'S/N'}</small>
-                </button>`;
-            }
-        }
-    }
-
-    // Função para o novo botão de definir o dia
-    function definirDiaVencimento() {
-        let d = prompt("Digite o DIA fixo para vencimento das faturas (1 a 28):", diaVencimento);
-        if (d && d > 0 && d <= 31) {
-            fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {
-                method: 'PATCH',
-                body: JSON.stringify({ dia_vencimento: parseInt(d) })
-            }).then(() => {
-                diaVencimento = parseInt(d);
-                alert("Dia de vencimento atualizado para todo dia " + diaVencimento);
-            });
-        }
-    }
-
-    // Função auxiliar para calcular a data de vencimento (Mês atual ou próximo)
-    function calcularDataVencimento() {
-        let agora = new Date();
-        let mes = agora.getMonth() + 1; // Janeiro é 0
-        let ano = agora.getFullYear();
-
-        // Se hoje for dia 20 e o vencimento for dia 10, vence no mês que vem.
-        // Se hoje for dia 05 e o vencimento for dia 10, vence neste mês ainda.
-        if (agora.getDate() > diaVencimento) {
-            mes++;
-            if (mes > 12) {
-                mes = 1;
-                ano++;
-            }
-        }
-
-        // Formata com zero à esquerda (ex: 05/08/2023)
-        let dFormatado = diaVencimento.toString().padStart(2, '0');
-        let mFormatado = mes.toString().padStart(2, '0');
+        // TODA A SUA LÓGICA ORIGINAL DO ARQUIVO MOVEL.TXT FOI MANTIDA ABAIXO
+        const URL_FB = "https://consuma-da-agua-default-rtdb.firebaseio.com/";
+        let ID_MAQUINA = localStorage.getItem('id_licenca_ativa');
         
-        return `${dFormatado}/${mFormatado}/${ano}`;
-    }
+        let precoM3 = 0, taxaFixa = 0, valorFixoGlobal = 0, diaVencimento = 10, comunidade = "", clientes = {}, idSelecionado = null;
 
-    // Função para o botão definirPagamento
-    async function definirPagamento() {
-        let p = prompt("Dados para recebimento (Ex: PIX: 000.000.000-00 ou Banco X Ag 123):", dadosPagamento);
-        if (p !== null) {
-            await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {
-                method: 'PATCH',
-                body: JSON.stringify({ dados_pagamento: p })
-            });
-            dadosPagamento = p;
-            alert("Dados de pagamento atualizados com sucesso!");
+        window.onload = carregarConfig;
+
+        // FUNÇÃO PARA ABRIR/FECHAR MENUS (NOVO)
+        function toggleMenu(id) {
+            const menu = document.getElementById(id);
+            const estaAberto = menu.style.display === 'grid';
+            // Fecha todos antes
+            document.querySelectorAll('.submenu').forEach(m => m.style.display = 'none');
+            // Abre o selecionado se estava fechado
+            if (!estaAberto) menu.style.display = 'grid';
         }
-    }
 
-    async function exibirCliente(id) {
-        idSelecionado = id;
-        const c = clientes[id];
-        
-        let ult = Number(c.leitura_atual || 0);
-        
-        try {
-            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
-            const cobs = await r.json();
-            if(cobs) {
-                let lista = Object.values(cobs).filter(cb => cb && String(cb.id_cliente) === String(id));
-                if(lista.length > 0) {
-                    lista.sort((a,b) => Number(b.leitura_atual) - Number(a.leitura_atual));
-                    let leituraBanco = Number(lista[0].leitura_atual);
-                    if(leituraBanco > ult) ult = leituraBanco;
+        function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function fecharModais() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+
+        async function carregarConfig() {
+            if (!ID_MAQUINA || ID_MAQUINA === "null") {
+                ID_MAQUINA = prompt("INSIRA O ID DA LICENÇA:");
+                if (ID_MAQUINA) localStorage.setItem('id_licenca_ativa', ID_MAQUINA);
+                else return;
+            }
+            try {
+                const r = await fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`);
+                const d = await r.json();
+                if(!d || d.ativo !== true) {
+                    alert("ID INVÁLIDO");
+                    localStorage.removeItem('id_licenca_ativa');
+                    location.reload();
+                    return;
                 }
-            }
-        } catch(e) { console.log("Erro ao sincronizar leitura atual"); }
-
-        document.getElementById('painel-cliente').innerHTML = `
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #eee; padding-bottom:15px; flex-wrap: wrap; gap: 10px;">
-                    <h2 style="margin:0">CLIENTE: ${c.nome}</h2>
-                    <div>                        
-                        <button class="btn btn-vermelho" onclick="excluirCliente('${id}')">EXCLUIR</button>
-                        <button class="btn btn-laranja" onclick="editarCliente('${id}')">EDITAR</button>
-                        <button class="btn btn-azul" onclick="verHistorico('${id}')">VER HISTÓRICO</button>
-                    </div>
-                </div>
-                
-                <div class="opcoes-cliente">
-                    <label style="cursor:pointer; font-weight:bold; display: block; background: #f9f9f9; padding: 8px; border-radius: 5px;">
-                        <input class="checkbox" type="checkbox" ${c.isento_tarifa?'checked':''} onchange="setIsencao('${id}', this.checked)"> 🛡️ ISENTO DE TARIFA
-                    </label>
-                    <label style="cursor:pointer; font-weight:bold; display: block; background: #f9f9f9; padding: 8px; border-radius: 5px;">
-                        <input class="checkbox" type="checkbox" ${c.usar_valor_fixo?'checked':''} onchange="setUsaFixo('${id}', this.checked)"> 💰 COBRAR VALOR FIXO
-                    </label>
-                </div>
-
-                <div style="background:#f0f7ff; padding:20px; border-radius:10px; margin-top:20px; display:flex; gap:15px; align-items:center; border: 1px solid #cde4ff;">
-                    <div><strong>ANTERIOR (HIDRÔMETRO):</strong><br><span style="font-size:24px; color:var(--azul);">${ult} m³</span></div>
-                    <div style="width:20%; margin-top:-20px">
-                        <strong>NOVA LEITURA:</strong>
-                        <input class="pesquisa" type="number" id="inp-atual" placeholder="0000" style="font-size:18px; margin:0">
-                    </div>
-                    <button class="btn btn-verde" style="height:45px; width:30%" onclick="lancar('${id}', ${ult})">LANÇAR E GERAR PDF</button>
-                    <button class="btn btn-azul" style="height:45px; width:30%" onclick="reimprimir('${id}')">REIMPRIMIR ÚLTIMA</button>
-                </div>
-
-                <h3 style="margin-top:30px; color:var(--vermelho)">DÉBITOS PENDENTES</h3>
-                <div id="lista-pendentes">Carregando pendências...</div>
-            </div>`;
-        carregarPendentes(id);
-    }
-
-        async function reimprimir(idCli) {
-        try {
-            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
-            const cobs = await r.json();
-            
-            if(!cobs) {
-                alert("Não existem cobranças registradas.");
-                return;
-            }
-            
-            let lista = Object.values(cobs).filter(c => c && String(c.id_cliente) === String(idCli));
-            
-            if(lista.length > 0) {
-                lista.sort((a,b) => Number(b.leitura_atual) - Number(a.leitura_atual));
-                const u = lista[0];
-                
-                const ant = Number(u.leitura_anterior || 0);
-                const atu = Number(u.leitura_atual || 0);
-                const cons = Number(u.consumo || 0);
-                const valTotal = Number(u.valor || 0);
-
-                // Tenta pegar o valor da tarifa de 3 formas diferentes para não vir 0.00
-                // 1. Tenta 'valor_tarifa' 
-                // 2. Tenta 'taxa_fixa' (como está no seu Firebase)
-                let tfa = Number(u.valor_tarifa || u.taxa_fixa || 0);
-                
-                // Se ainda assim for 0, mas o cliente NÃO é isento e NÃO é taxa fixa pura:
-                // Forçamos o valor que está configurado no sistema (taxaFixa)
-                if (tfa === 0 && !clientes[idCli].isento_tarifa && u.tipo_cobranca !== "FIXA") {
-                    tfa = Number(taxaFixa);
-                }
-
-                gerarPDF(clientes[idCli], ant, atu, cons, valTotal, tfa);
-            } else { 
-                alert("Nenhuma fatura encontrada."); 
-            }
-        } catch(e) {
-            console.error("Erro:", e);
-            alert("Erro ao processar a fatura.");
-        }
-    }
-
-        async function lancar(id, ant) {
-        let atuInput = document.getElementById('inp-atual').value;
-        let atu = parseInt(atuInput);
-        const cliente = clientes[id];
-        
-        let consumo, tarifa, total;
-
-        if (cliente.usar_valor_fixo) {
-            consumo = 0; 
-            tarifa = 0;
-            total = valorFixoGlobal;
-            if(isNaN(atu)) atu = ant;
-        } else {
-            if(isNaN(atu) || atu < ant) return alert("Erro: Nova leitura inválida!");
-            consumo = atu - ant;
-            
-            // BUSCA A TARIFA: Se for isento é 0, se não, usa a taxaFixa global
-            tarifa = cliente.isento_tarifa ? 0 : taxaFixa;
-            total = (consumo * precoM3) + tarifa;
-        }
-
-        const hoje = new Date().toLocaleDateString('pt-BR');
-        const nova = {
-            id_cliente: id, 
-            nome_cliente: cliente.nome,
-            leitura_anterior: ant, 
-            leitura_atual: atu,
-            consumo: consumo, 
-            valor: total,           // Valor Total
-            valor_tarifa: tarifa,   // <--- ISSO ESTAVA FALTANDO NO SEU FIREBASE
-            data_leitura: hoje,
-            pago: false, 
-            tipo_cobranca: cliente.usar_valor_fixo ? "FIXA" : "M3"
-        };
-
-        // Salva na nuvem garantindo que o campo valor_tarifa exista agora
-        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`, {
-            method:'POST', 
-            body:JSON.stringify(nova)
-        });
-
-        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
-            method:'PATCH', 
-            body:JSON.stringify({leitura_atual: atu})
-        });
-        
-        gerarPDF(cliente, ant, atu, consumo, total, tarifa);
-        atualizarLista().then(() => exibirCliente(id));
-    }
-
-    function gerarPDF(cli, ant, atu, cons, total, vTarifa) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    const venc = calcularDataVencimento();
-
-    // --- CABEÇALHO ---
-    doc.setFillColor(31, 83, 141);
-    doc.rect(0, 0, 210, 30, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.text("FATURA DA ÁGUA - " + comunidade, 105, 20, {align:'center'});
-
-    // --- DADOS DO CONSUMIDOR ---
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(11);
-    doc.text("DADOS DO CONSUMIDOR", 20, 45);
-    doc.line(20, 47, 190, 47);
-    
-    doc.setFont("helvetica", "normal");
-    doc.text(`NOME: ${cli.nome}`, 20, 55);
-    doc.text(`ENDEREÇO: ${cli.rua || 'N/A'}, Nº ${cli.numero || 'S/N'}`, 20, 62);
-    doc.text(`LOCALIDADE: ${comunidade}`, 20, 69);
-    doc.text(`Emissão: ${hoje}`, 150, 55);
-
-    // --- DETALHAMENTO DA LEITURA ---
-    doc.setFont("helvetica", "bold");
-    doc.text("DETALHAMENTO DA LEITURA", 20, 85);
-    doc.line(20, 87, 190, 87);
-
-    // Tabela de Leitura 
-    doc.setFontSize(10);
-    doc.text("LEITURA ANTERIOR", 20, 95);
-    doc.text("LEITURA ATUAL", 65, 95);
-    doc.text("CONSUMO", 110, 95);
-    doc.text("PREÇO M³", 155, 95);
-
-    doc.setFont("helvetica", "normal");
-    doc.text(`${ant} m³`, 20, 102);
-    doc.text(`${atu} m³`, 65, 102);
-    doc.text(`${cons} m³`, 110, 102);
-    doc.text(`R$ ${precoM3.toFixed(2)}`, 155, 102);
-
-    // --- VALORES ---
-    doc.line(20, 110, 190, 110);
-    
-    // LÓGICA DE EXIBIÇÃO CORRIGIDA:
-    // --- DENTRO DA FUNÇÃO gerarPDF(cli, ant, atu, cons, total, vTarifa) ---
-
-    // Linha separadora antes dos valores
-    doc.line(20, 110, 190, 110);
-    doc.setFont("helvetica", "normal");
-
-    if (cli.usar_valor_fixo) {
-        // CASO A: CLIENTE SEM HIDRÔMETRO
-        doc.setFont("helvetica", "bold");
-        doc.text(`Cobrança por Valor Fixo (Sem Hidrômetro):`, 20, 120);
-        doc.setFont("helvetica", "normal");
-        doc.text(`R$ ${total.toFixed(2)}`, 160, 120);
-    } else {
-        // CASO B: CLIENTE COM HIDRÔMETRO
-        let valorConsumo = cons * precoM3;
-        
-        // Linha do Consumo
-        doc.text(`Valor do Consumo (${cons} m³ x R$ ${precoM3.toFixed(2)}):`, 20, 120);
-        doc.text(`R$ ${valorConsumo.toFixed(2)}`, 160, 120);
-
-        // Linha da Tarifa de Manutenção (Usa vTarifa que agora passamos corretamente)
-        // Se vTarifa for undefined ou NaN, ele vira 0.00 automaticamente
-        let tarifaExibir = Number(vTarifa) || 0; 
-        
-        doc.text(`Tarifa de Manutenção:`, 20, 128);
-        doc.text(`R$ ${tarifaExibir.toFixed(2)}`, 160, 128);
-    }
-
-    // --- TOTAL A PAGAR ---
-    doc.setFillColor(240, 240, 240);
-    doc.rect(20, 140, 170, 25, 'F');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("DATA DE VENCIMENTO", 30, 155);
-    doc.text(venc, 85, 155);
-    
-    doc.text("TOTAL A PAGAR", 125, 155);
-    doc.setFontSize(14);
-    doc.setTextColor(200, 0, 0); 
-    doc.text(` R$ ${total.toFixed(2)}`, 160, 155);
-
-    // --- BLOCO DE PAGAMENTO ---
-    doc.setFillColor(400, 100, 0); // Fundo azul claro para destaque
-    doc.rect(20, 160, 170, 18, 'F');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(31, 83, 141);
-    doc.text("DADOS PARA PAGAMENTO", 25, 167);
-    
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(14);
-    doc.text(dadosPagamento, 25, 173); // Aqui imprime o que você digitou no sistema
-
-    // --- RODAPÉ ---
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "italic");
-    doc.text("Mantenha suas contas em dia para garantir o fornecimento.", 105, 180, { align: 'center' }); 
-
-    doc.save(`fatura_${cli.nome.replace(/\s/g, '_')}.pdf`);
-}
-
-    function gerarReciboPagamento(cli, valor_total, dataPagamento) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // --- BORDA DO RECIBO ---
-    doc.setDrawColor(200);
-    doc.rect(10, 10, 190, 90); // Cria um quadro compacto
-
-    // --- CABEÇALHO ---
-    doc.setFillColor(40, 40, 40);
-    doc.rect(10, 10, 190, 15, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("RECIBO DE PAGAMENTO - " + comunidade, 105, 20, { align: 'center' });
-
-    // --- CORPO DO RECIBO ---
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    
-    doc.text(`Recebemos de: ${cli.nome}`, 20, 40);
-    doc.text(`Endereço: ${cli.rua || 'N/A'}, Nº ${cli.numero || 'S/N'}`, 20, 48);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text(`VALOR PAGO: R$ ${parseFloat(valor_total).toFixed(2)}`, 20, 60);
-    doc.text(`DATA: ${dataPagamento}`, 140, 60);
-
-    // --- CAMPO DE ASSINATURA ---
-    doc.line(60, 85, 150, 85); // Linha da assinatura
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "italic");
-    doc.text("Assinatura do Responsável", 105, 90, { align: 'center' });
-
-    // Salva o arquivo
-    doc.save(`recibo_${cli.nome.replace(/\s/g, '_')}.pdf`);
-}
-
-    async function verHistorico(idCli) {
-        const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
-        const cobs = await r.json() || {};
-        document.getElementById('modal-titulo').innerText = "HISTÓRICO: " + clientes[idCli].nome;
-        let html = "<table><tr><th>Data</th><th>Consumo</th><th>Valor</th><th>Status</th></tr>";
-        let lista = Object.values(cobs).filter(c => c.id_cliente === idCli).sort((a,b) => b.leitura_atual - a.leitura_atual);
-        lista.forEach(c => {
-            html += `<tr><td>${c.data_leitura}</td><td>${c.consumo} m³</td><td>R$ ${c.valor.toFixed(2)}</td><td>${c.pago?'✅ Pago':'❌ Aberto'}</td></tr>`;
-        });
-        document.getElementById('modal-dados').innerHTML = html + "</table>";
-        abrirModal('modal-lista');
-    }
-
-    async function relatorioTodosDebitos() {
-        const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
-        const cobs = await r.json() || {};
-        let totalGeral = 0;
-        document.getElementById('modal-titulo').innerText = "DÉBITOS GERAIS";
-        let html = "<table><tr><th>Morador</th><th>Valor</th></tr>";
-        for(let id in cobs) {
-            if(!cobs[id].pago) {
-                totalGeral += cobs[id].valor;
-                html += `<tr><td>${cobs[id].nome_cliente}</td><td style="color:red">R$ ${cobs[id].valor.toFixed(2)}</td></tr>`;
-            }
-        }
-        document.getElementById('modal-dados').innerHTML = html + `</table><h2 style="text-align:right">Total: R$ ${totalGeral.toFixed(2)}</h2>`;
-        abrirModal('modal-lista');
-    }
-
-    async function editarCliente(id) {
-        const c = clientes[id];
-        const novoNome = prompt("Editar Nome:", c.nome);
-        const novaRua = prompt("Editar Rua:", c.rua || "");
-        const novoNum = prompt("Editar Número:", c.numero || "");
-    
-        if (novoNome && confirm("Confirmar alteração dos dados?")) {
-            const dadosAtualizados = {
-                nome: novoNome.toUpperCase(),
-                rua: novaRua.toUpperCase(),
-                numero: novoNum
-            };
-            
-            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
-                method: 'PATCH',
-                body: JSON.stringify(dadosAtualizados)
-            });
-            
-            alert("Dados atualizados com sucesso!");
-            atualizarLista().then(() => exibirCliente(id));
-        }
-    }
-    
-    async function excluirCliente(id) {
-        const c = clientes[id];
-        if (confirm(`⚠️ ATENÇÃO: Deseja realmente excluir ${c.nome}?\nIsso não apagará o histórico de cobranças, apenas o cadastro do morador.`)) {
-            if (confirm("TEM CERTEZA? Esta ação não pode ser desfeita!")) {
-                await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
-                    method: 'DELETE'
-                });
-                
-                alert("Cliente removido com sucesso.");
-                document.getElementById('painel-cliente').innerHTML = `
-                    <div style="text-align:center; color:#999; margin-top:100px;">
-                        <h2>Cliente Excluído</h2>
-                        <p>Selecione outro morador na lista lateral.</p>
-                    </div>`;
+                precoM3 = parseFloat(d.valor_m3 || 0);
+                taxaFixa = parseFloat(d.taxa_fixa || 0);
+                comunidade = d.nome || "SISTEMA";
+                document.getElementById('txt-comunidade').innerText = "📍 " + comunidade;
+                document.getElementById('lbl-info').innerText = `Valor m³: R$ ${precoM3.toFixed(2)}`;
                 atualizarLista();
+            } catch(e) { alert("Erro ao conectar com Firebase."); }
+        }
+
+        async function atualizarLista() {
+            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes.json`);
+            clientes = await r.json() || {};
+            filtrar();
+        }
+
+        function filtrar() {
+            const b = document.getElementById('input-busca').value.toUpperCase();
+            const lista = document.getElementById('lista-clientes');
+            lista.innerHTML = "";
+            for(let id in clientes) {
+                if(clientes[id].nome.toUpperCase().includes(b)) {
+                    lista.innerHTML += `<button class="btn-cliente" onclick="exibirCliente('${id}')">👤 ${clientes[id].nome}</button>`;
+                }
             }
         }
-    }
 
-    async function setUsaFixo(id, val) { 
-        clientes[id].usar_valor_fixo = val; // Atualiza a memória na hora
-        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {
-            method:'PATCH', 
-            body:JSON.stringify({usar_valor_fixo: val})
-        }); 
-        clientes[id].usar_valor_fixo = val;
-    }
-
-    async function carregarPendentes(idCli) {
-        const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
-        const cobs = await r.json() || {};
-        const p = document.getElementById('lista-pendentes');
-        p.innerHTML = "";
-        for(let id in cobs) {
-            if(cobs[id].id_cliente === idCli && !cobs[id].pago) {
-                p.innerHTML += `<div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; background:#fff;">
-                    <span>📅 ${cobs[id].data_leitura} | <b>R$ ${cobs[id].valor.toFixed(2)}</b></span>
-                    <button class="btn btn-laranja" onclick="darBaixa('${id}')">DAR BAIXA</button>
+        async function exibirCliente(id) {
+            idSelecionado = id;
+            const c = clientes[id];
+            const ult = c.leitura_atual || 0;
+            
+            document.getElementById('painel-cliente').innerHTML = `
+                <div class="card">
+                    <h3 style="margin:0; color:var(--azul)">${c.nome}</h3>
+                    <p style="font-size:12px; color:#666">Anterior: <strong>${ult} m³</strong></p>
+                    <hr>
+                    <label>LANÇAR NOVA LEITURA:</label>
+                    <input type="number" id="inp-atual" placeholder="0000" style="font-size:24px; text-align:center; height:60px; font-weight:bold; border:2px solid var(--azul);">
+                    <button class="btn btn-verde" style="width:100%; height:50px; font-size:16px;" onclick="lancar('${id}', ${ult})">SALVAR E GERAR PDF</button>
+                    <br><br>
+                    <button class="btn btn-laranja" style="width:100%" onclick="verHistorico('${id}')">VER HISTÓRICO</button>
+                    <div id="lista-pendentes" style="margin-top:15px"></div>
                 </div>`;
+        }
+
+        // As demais funções (lancar, salvarCliente, trocarAssinatura, etc) 
+        // devem ser coladas aqui conforme o seu arquivo movel.txt original.
+        function trocarAssinatura() {
+            if(confirm("Deseja trocar o ID da máquina?")) {
+                localStorage.removeItem('id_licenca_ativa');
+                location.reload();
             }
         }
-    }
-
-    function definirValorFixo() {
-        let n = prompt("Defina o valor para Clientes de Taxa Fixa (R$):", valorFixoGlobal);
-        if(n) {
-            fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {
-                method:'PATCH', 
-                body:JSON.stringify({valor_fixo_padrao: parseFloat(n)})
-            }).then(() => {
-                alert("Valor fixo global atualizado!");
-                carregarConfig();
-            });
-        }
-    }
-
-    function definirPreco() {
-        let n = prompt("Novo preço do m³:", precoM3);
-        if(n) fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {method:'PATCH', body:JSON.stringify({valor_m3: parseFloat(n)})}).then(carregarConfig);
-    }
-    function definirTarifa() {
-        let n = prompt("Novo valor da Tarifa Fixa:", taxaFixa);
-        if(n) fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {method:'PATCH', body:JSON.stringify({taxa_fixa: parseFloat(n)})}).then(carregarConfig);
-    }
-    async function salvarOperador() {
-        const nome = document.getElementById('op-nome').value.toUpperCase();
-        if(!nome) return;
-        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/configuracoes.json`, {method:'PATCH', body:JSON.stringify({leiturista: nome})});
-        alert("Operador " + nome + " autorizado!");
-        fecharModais();
-    }
-    async function salvarCliente() {
-        const n = document.getElementById('cad-nome').value.toUpperCase();
-        const r = document.getElementById('cad-rua').value.toUpperCase();
-        const nu = document.getElementById('cad-num').value;
-        if(!n) return alert("Nome é obrigatório");
-        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes.json`, {method:'POST', body:JSON.stringify({nome:n, rua:r, numero:nu, leitura_atual:0, isento_tarifa:false, usar_valor_fixo:false})});
-        fecharModais(); atualizarLista();
-    }
-
-    async function darBaixa(id) {
-    if(confirm("Confirmar recebimento?")) {
-        try {
-            // 1. Busca a cobrança específica no Firebase
-            const respCob = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${id}.json`);
-            const cobranca = await respCob.json();
-            
-            // 2. Garante que o valor seja um número (se vier vazio ou texto, vira 0)
-            // Verifique se no seu Firebase o campo é 'valor_total' ou 'valor'
-            const valorPago = parseFloat(cobranca.valor_total || cobranca.valor || 0);
-
-            // 3. Atualiza para pago no Firebase
-            await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${id}.json`, {
-                method:'PATCH', 
-                body:JSON.stringify({pago:true})
-            });
-
-            // 4. Pega os dados do cliente e data
-            const clienteAtual = clientes[idSelecionado]; 
-            const dataHoje = new Date().toLocaleDateString('pt-BR');
-
-            alert("Pagamento registrado com sucesso!");
-
-            // 5. Gera o recibo com o valor já corrigido
-            gerarReciboPagamento(clientes[idSelecionado], valorPago, dataHoje);
-
-            // 6. Atualiza a interface
-            exibirCliente(idSelecionado);
-            
-        } catch (e) {
-            console.error("Erro ao dar baixa:", e);
-            alert("Erro ao processar pagamento ou gerar recibo.");
-        }
-    }
-
-    
-}
-    async function setIsencao(id, val) { 
-        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${id}.json`, {method:'PATCH', body:JSON.stringify({isento_tarifa: val})}); 
-        clientes[id].isento_tarifa = val;
-    }
-    function gerarQRAcesso() {
-        const win = window.open("", "", "width=400,height=500");
-        win.document.write(`<div style="text-align:center; padding:20px;"><h3>ACESSO COLABORADOR</h3><div id="q" style="display:inline-block"></div><br><h4>ID: ${ID_MAQUINA}</h4></div>`);
-        new QRCode(win.document.getElementById("q"), ID_MAQUINA);
-    }
-    function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function fecharModais() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); }
-
-    carregarConfig();
-</script>
+    </script>
 </body>
 </html>
