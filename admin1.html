@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MASTER - Leitura Pro Água 🛡️</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --azul: #1f538d; --danger: #d32f2f; --success: #388e3c; --cinza: #666; --alerta: #f39c12; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 1000px; margin: auto; }
+        #login-screen { position: fixed; inset: 0; background: var(--azul); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-box { background: white; padding: 30px; border-radius: 12px; width: 300px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: var(--azul); color: white; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
+        .btn { border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; margin: 2px; }
+        .btn-add { background: var(--azul); width: 100%; margin-top: 10px; }
+        .btn-gen { background: var(--success); font-size: 10px; width: auto; white-space: nowrap; margin-bottom: 10px; }
+        .btn-edit { background: var(--alerta); font-size: 11px; }
+        .btn-del { background: var(--danger); font-size: 11px; }
+        .flex-row { display: flex; gap: 10px; align-items: flex-end; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <h2 style="color: var(--azul)">Leitura Pro Água<br>Painel Master</h2>
+            <input type="email" id="user-input" placeholder="E-mail do Admin">
+            <input type="password" id="pass-input" placeholder="Senha">
+            <button class="btn btn-add" id="btn-entrar" onclick="autenticar()">ENTRAR NO PAINEL</button>
+            <p id="msg-erro" style="color:red; font-size: 12px; display:none; margin-top:10px;">E-mail ou senha incorretos!</p>
+        </div>
+    </div>
+
+    <div id="painel" style="display: none;" class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Gerenciador de Licenças Multi-Acesso</h2>
+            <button class="btn" style="background:var(--cinza)" onclick="sair()">Sair do Sistema</button>
+        </div>
+        
+        <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 5px solid var(--azul);">
+            <h4 style="margin:0 0 10px 0">Cadastrar Novo Terminal / Licença</h4>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="font-size: 11px; font-weight: bold;">NOME DO CLIENTE / COMUNIDADE</label>
+                    <input type="text" id="nome-cli" placeholder="Ex: Poções - Central">
+                </div>
+                
+                <div style="flex: 1; min-width: 250px;">
+                    <label style="font-size: 11px; font-weight: bold;">CHAVE DE ACESSO (ID)</label>
+                    <div class="flex-row">
+                        <input type="text" id="id-maquina" placeholder="Gere ou cole uma chave">
+                        <button class="btn btn-gen" onclick="gerarChaveAleatoria()">GERAR CHAVE</button>
+                    </div>
+                </div>
+
+                <div style="flex: 1; min-width: 150px;">
+                    <label style="font-size: 11px; font-weight: bold;">DATA DE EXPIRAÇÃO</label>
+                    <input type="text" id="data-exp" placeholder="DD/MM/AAAA">
+                </div>
+            </div>
+            <button class="btn btn-add" onclick="salvarLicenca()">CADASTRAR E ATIVAR</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Terminal / Cliente</th>
+                    <th>Chave (ID)</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-corpo"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // CONFIGURAÇÃO DO SEU FIREBASE
+        // (Você encontra esses dados nas configurações do projeto no console do Firebase)
+        const firebaseConfig = {
+            databaseURL: "https://consuma-da-agua-default-rtdb.firebaseio.com"
+        };
+        
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // Monitor de Autenticação (Verifica se já está logado)
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('painel').style.display = 'block';
+                carregarDados();
+            } else {
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('painel').style.display = 'none';
+            }
+        });
+
+        async function autenticar() {
+            const email = document.getElementById('user-input').value.trim();
+            const pass = document.getElementById('pass-input').value.trim();
+            const btn = document.getElementById('btn-entrar');
+            
+            btn.innerText = "AUTENTICANDO...";
+            btn.disabled = true;
+
+            try {
+                await auth.signInWithEmailAndPassword(email, pass);
+                document.getElementById('msg-erro').style.display = "none";
+            } catch (error) {
+                console.error(error);
+                document.getElementById('msg-erro').style.display = "block";
+                btn.innerText = "ENTRAR";
+                btn.disabled = false;
+            }
+        }
+
+        function sair() {
+            auth.signOut().then(() => location.reload());
+        }
+
+        function gerarChaveAleatoria() {
+            const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let resultado = '-L';
+            for (let i = 0; i < 18; i++) {
+                resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+            }
+            document.getElementById('id-maquina').value = resultado;
+        }
+
+        async function carregarDados() {
+            // Agora usamos o SDK do Firebase em vez de Fetch para garantir a autenticação automática
+            db.ref('licencas').on('value', (snapshot) => {
+                const dados = snapshot.val();
+                const corpo = document.getElementById('tabela-corpo');
+                corpo.innerHTML = "";
+                if(!dados) return;
+
+                const hoje = new Date();
+                hoje.setHours(0,0,0,0);
+
+                const grupos = {};
+                for (let id_maquina in dados) {
+                    const item = dados[id_maquina];
+                    const nomeGrupo = item.nome || "SEM NOME";
+                    if (!grupos[nomeGrupo]) grupos[nomeGrupo] = [];
+                    grupos[nomeGrupo].push({ id_dispositivo: id_maquina, ...item });
+                }
+
+                for (let nomeCliente in grupos) {
+                    corpo.innerHTML += `<tr style="background-color: #f1f1f1;"><td colspan="5"><strong>📁 CLIENTE: ${nomeCliente}</strong></td></tr>`;
+                    grupos[nomeCliente].forEach(item => {
+                        const ativo = item.ativo === true;
+                        let alerta = "";
+                        let estiloLinha = "";
+                        
+                        if (item.expiracao) {
+                            const p = item.expiracao.split("/");
+                            const dExp = new Date(p[2], p[1]-1, p[0]);
+                            const diffDias = Math.ceil((dExp - hoje) / (1000 * 60 * 60 * 24));
+                            if (diffDias < 0) {
+                                alerta = '<br><small style="color:red"><b>EXPIRADA</b></small>';
+                                estiloLinha = "background-color: #ffebee;";
+                            } else if (diffDias <= 10) {
+                                alerta = `<br><small style="color:#856404"><b>VENCE EM ${diffDias} DIAS</b></small>`;
+                                estiloLinha = "background-color: #fff3cd;";
+                            }
+                        }
+
+                        corpo.innerHTML += `
+                            <tr style="${estiloLinha}">
+                                <td style="padding-left: 40px;">💻 Terminal ${alerta}</td>
+                                <td><small><code>${item.id_dispositivo}</code></small></td>
+                                <td>${item.expiracao || '---'}</td>
+                                <td>
+                                    <button class="btn" style="background:${ativo?'#28a745':'#dc3545'}; font-size:10px" 
+                                        onclick="alternarStatus('${item.id_dispositivo}', ${ativo})">
+                                        ${ativo ? 'ATIVO' : 'BLOQUEADO'}
+                                    </button>
+                                </td>
+                                <td>
+                                    <button class="btn btn-edit" onclick="editarData('${item.id_dispositivo}', '${item.expiracao}')">📅 Data</button>
+                                    <button class="btn btn-del" onclick="excluirLicenca('${item.id_dispositivo}')">Excluir</button>
+                                </td>
+                            </tr>`;
+                    });
+                }
+            });
+        }
+
+        async function salvarLicenca() {
+            const id = document.getElementById('id-maquina').value.trim();
+            const nomeCli = document.getElementById('nome-cli').value.trim();
+            const dataExp = document.getElementById('data-exp').value.trim();
+
+            if (!id || !nomeCli || !dataExp) return alert("Preencha todos os campos!");
+
+            await db.ref('licencas/' + id).set({
+                nome: nomeCli,
+                expiracao: dataExp,
+                ativo: true
+            });
+
+            alert("Licença ativada!");
+            document.getElementById('id-maquina').value = "";
+            document.getElementById('nome-cli').value = "";
+        }
+
+        async function editarData(id, dataAtual) {
+            const novaData = prompt(`Nova data de expiração para ${id}:`, dataAtual);
+            if (novaData && novaData !== dataAtual) {
+                await db.ref('licencas/' + id).update({ expiracao: novaData });
+            }
+        }
+
+        async function alternarStatus(id, statusAtual) {
+            await db.ref('licencas/' + id).update({ ativo: !statusAtual });
+        }
+
+        async function excluirLicenca(id) {
+            if (confirm("Deseja remover este terminal permanentemente?")) {
+                await db.ref('licencas/' + id).remove();
+            }
+        }
+    </script>
+</body>
+</html>
