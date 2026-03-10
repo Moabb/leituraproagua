@@ -9,29 +9,36 @@
         body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--cinza-bg); margin: 0; padding: 0; color: var(--texto); line-height: 1.6; }
         
         /* CABEÇALHO COM BOTÕES NO TOPO */
-        header { background: var(--azul); color: white; padding: 30px 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        header { background: var(--azul); color: white; padding: 10px 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flow; gap: 10px; align-items: center;}
         header h1 { margin: 0; font-size: 32px; letter-spacing: 1px; }
-        header p { margin: 5px 0 20px; opacity: 0.9; font-size: 18px; }
+        header p { margin: 0px 0 0px; opacity: 0.9; font-size: 18px; }
 
-        .nav-topo { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .pp {
+            margin: 0px;
+            margin-top: -30px;
+            margin-bottom: 10px;
+        }
+
+        .nav-topo { display: flow; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .nav-topo-logo { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; align-items: anchor-center;}
         
-        .container { max-width: 1300px; margin: 0 auto; padding: 40px 20px; }
+        .container { max-width: 1300px; margin: 0 auto; padding: 0px 20px; }
         
         /* BOTÕES */
-        .btn { display: inline-block; text-decoration: none; padding: 14px 25px; font-weight: bold; border-radius: 50px; transition: 0.3s; cursor: pointer; border: 2px solid #fff; font-size: 15px; text-transform: uppercase; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; text-decoration: none; padding: 5px 10px; font-weight: bold; border-radius: 50px; transition: 0.3s; cursor: pointer; border: 2px solid #fff; font-size: 15px; text-transform: uppercase; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn-azul { background: white; color: var(--azul); }
         .btn-azul:hover { background: #e0e0e0; transform: translateY(-2px); }
         .btn-verde { background: var(--azul); color: white; }
         .btn-verde:hover { background: #218838; transform: translateY(-2px); }
 
         /* SEÇÃO DE RECURSOS */
-        .hero { text-align: center; margin-bottom: 50px; }
+        .hero { text-align: center; margin-bottom: 0px; }
         .hero h2 { color: var(--azul); font-size: 32px; }
 
         .recursos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 25px; }
-        .recurso-card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; }
+        .recurso-card { background: white; padding: 25px; padding-top: 10px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; }
         .recurso-card h3 { color: var(--azul); margin-top: 0; border-bottom: 2px solid var(--cinza-bg); padding-bottom: 10px; }
-        .recurso-card p { font-size: 14px; color: #555; height: 60px; }
+        .recurso-card p { font-size: 14px; color: #555; height: 10px; }
         .recurso-card img { width: 100%; border-radius: 10px; margin-top: 15px; border: 1px solid #eee; transition: 0.5s; }
         .recurso-card img:hover { transform: scale(1.03); }
 
@@ -46,12 +53,17 @@
 <body>
 
 <header>
-    <h1>LEITURA PRO ÁGUA</h1>
-    <p>Tecnologia a serviço da sua comunidade.</p>
-    
+    <div class="nav-topo-logo">
+        <div>
+            <h1>LEITURA PRO ÁGUA</h1>
+            <p>Tecnologia a serviço da sua comunidade.</p>
+        </di>
+    </div>
     <div class="nav-topo">
         <a class="btn btn-azul" href="https://wa.me/+5538997523107">💳 PREÇOS</a>
-        <a class="btn btn-verde" href="https://moabb.github.io/leituraproagua/leitura.html">🚀 ACESSAR APP LEITURISTA</a>
+        <a class="btn btn-verde" href="https://moabb.github.io/leituraproagua/leituraproagua.html">SISTEMA DE GESTÃO PC</a>
+        <a class="btn btn-verde" href="https://moabb.github.io/leituraproagua/movel.html">GESTÃO NO TELEFONE</a>
+        <a class="btn btn-verde" href="https://moabb.github.io/leituraproagua/leitura.html">APP LEITURISTA</a>
         <a class="btn btn-verde" href="https://wa.me/+5538997523107">💬 SUPORTE WHATSAPP</a>
     </div>
 </header>
@@ -59,14 +71,14 @@
 <div class="container">
 
     <div class="hero">
-        <h2>Gestão Completa e Transparente</h2>
-        <p>Desenvolvido para facilitar a leitura e a emissão de faturas, eliminando erros.</p>
+        <h1>Gestão Completa e Transparente</h1>
+        <div class="pp">Desenvolvido para facilitar a leitura e a emissão de faturas, eliminando erros.</div>
     </div>
 
     <div class="recursos">
         <div class="recurso-card">
             <h3>Sistema Simples e Intuitivo</h3>
-            <p>Controle de clientes com endereço e financeiro, gestão de leituristas e geração de faturas em PDF profissionais com um clique.</p>
+            <p>Gestão de leituristas e geração de faturas em PDF profissionais com um clique.</p>
             <img src="leituraproaguapc.jpg" alt="Sistema PC">
         </div>
         <div class="recurso-card">
@@ -99,11 +111,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
-
-
