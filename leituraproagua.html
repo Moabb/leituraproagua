@@ -92,6 +92,7 @@
                     <div id="txt-comunidade" style="margin-top:5px; font-weight:bold; color: var(--azul);">📍 Carregando...</div>
                 </div>
                 <div style="text-align: right;">
+                    <button class="btn btn-azul" onclick="relatorioConsumoMensal()">MÊS TOTAL</button>
                     <button class="btn btn-vermelho" onclick="relatorioTodosDebitos()">TODOS DÉBITOS</button>
                     <button class="btn" style="background:#8e44ad" onclick="definirDiaVencimento()">VENCIMENTO</button>
                     <button class="btn" style="background:#8e44ad" onclick="definirPagamento()">PAGAMENTO</button>
@@ -336,46 +337,66 @@
     }
 
         async function reimprimir(idCli) {
-        try {
-            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
-            const cobs = await r.json();
-            
-            if(!cobs) {
-                alert("Não existem cobranças registradas.");
-                return;
-            }
-            
-            let lista = Object.values(cobs).filter(c => c && String(c.id_cliente) === String(idCli));
-            
-            if(lista.length > 0) {
-                lista.sort((a,b) => Number(b.leitura_atual) - Number(a.leitura_atual));
-                const u = lista[0];
+            try {
+                const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
+                const cobs = await r.json();
                 
-                const ant = Number(u.leitura_anterior || 0);
-                const atu = Number(u.leitura_atual || 0);
-                const cons = Number(u.consumo || 0);
-                const valTotal = Number(u.valor || 0);
-
-                // Tenta pegar o valor da tarifa de 3 formas diferentes para não vir 0.00
-                // 1. Tenta 'valor_tarifa' 
-                // 2. Tenta 'taxa_fixa' (como está no seu Firebase)
-                let tfa = Number(u.valor_tarifa || u.taxa_fixa || 0);
-                
-                // Se ainda assim for 0, mas o cliente NÃO é isento e NÃO é taxa fixa pura:
-                // Forçamos o valor que está configurado no sistema (taxaFixa)
-                if (tfa === 0 && !clientes[idCli].isento_tarifa && u.tipo_cobranca !== "FIXA") {
-                    tfa = Number(taxaFixa);
+                if(!cobs) {
+                    alert("Não existem cobranças registradas.");
+                    return;
                 }
+                
+                // Localiza a última cobrança
+                let chaves = Object.keys(cobs).filter(key => cobs[key] && String(cobs[key].id_cliente) === String(idCli));
+                if(chaves.length > 0) {
+                    // Ordena para pegar a mais recente pela leitura_atual
+                    chaves.sort((a, b) => Number(cobs[b].leitura_atual) - Number(cobs[a].leitura_atual));
+                    const idCob = chaves[0];
+                    const u = cobs[idCob];
+                    const cliente = clientes[idCli];
 
-                gerarPDF(clientes[idCli], ant, atu, cons, valTotal, tfa);
-            } else { 
-                alert("Nenhuma fatura encontrada."); 
+                    // --- LÓGICA DE RECÁLCULO FORÇADO ---
+                    let ant = Number(u.leitura_anterior || 0);
+                    let atu = Number(u.leitura_atual || 0);
+                    let cons = Number(u.consumo || 0);
+                    let novoTotal, novaTarifa;
+
+                    if (cliente.usar_valor_fixo) {
+                        novaTarifa = 0;
+                        novoTotal = valorFixoGlobal;
+                    } else {
+                        novaTarifa = cliente.isento_tarifa ? 0 : taxaFixa;
+                        novoTotal = (cons * precoM3) + novaTarifa;
+                    }
+
+                    // --- ATUALIZAÇÃO DO FINANCEIRO NO BANCO ---
+                    // Isso garante que o valor no histórico e débitos pendentes mude também
+                    await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${idCob}.json`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                            valor: novoTotal,
+                            valor_tarifa: novaTarifa,
+                            tipo_cobranca: cliente.usar_valor_fixo ? "FIXA" : "M3"
+                        })
+                    });
+
+                    // --- GERA O PDF COM OS VALORES NOVOS ---
+                    gerarPDF(cliente, ant, atu, cons, novoTotal, novaTarifa);
+
+                    // --- ATUALIZA A INTERFACE ---
+                    carregarPendentes(idCli); // <--- ESTA LINHA ATUALIZA OS DÉBITOS PENDENTES
+                    
+                    // Atualiza a tela para mostrar o novo valor na lista de pendentes
+                    exibirCliente(idCli);
+                    alert("Fatura recalculada e atualizada com sucesso!");
+                } else { 
+                    alert("Nenhuma fatura encontrada.");
+                }
+            } catch(e) {
+                console.error("Erro:", e);
+                alert("Erro ao processar e atualizar a fatura.");
             }
-        } catch(e) {
-            console.error("Erro:", e);
-            alert("Erro ao processar a fatura.");
         }
-    }
 
         async function lancar(id, ant) {
         let atuInput = document.getElementById('inp-atual').value;
@@ -590,6 +611,56 @@
         abrirModal('modal-lista');
     }
 
+    async function relatorioConsumoMensal() {
+        try {
+            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
+            const cobs = await r.json() || {};
+            
+            const hoje = new Date();
+            const mesAtual = (hoje.getMonth() + 1).toString().padStart(2, '0');
+            const anoAtual = hoje.getFullYear().toString();
+            
+            let consumoMensal = 0;
+            document.getElementById('modal-titulo').innerText = `CONSUMO MENSAL (${mesAtual}/${anoAtual})`;
+            
+            let html = "<table><tr><th>Morador</th><th>Data</th><th>Consumo</th></tr>";
+
+            for(let id in cobs) {
+                const c = cobs[id];
+                if(c && c.data_leitura && c.consumo) {
+                    // Extrai MM/AAAA da string "15/03/2024"
+                    const partes = c.data_leitura.split('/');
+                    const mesCob = partes[1];
+                    const anoCob = partes[2];
+
+                    // Filtra apenas se for o mês e ano corrente
+                    if(mesCob === mesAtual && anoCob === anoAtual) {
+                        const valorConsumo = parseFloat(c.consumo);
+                        consumoMensal += valorConsumo;
+                        
+                        html += `<tr>
+                            <td>${c.nome_cliente}</td>
+                            <td>${c.data_leitura}</td>
+                            <td><b>${valorConsumo} m³</b></td>
+                        </tr>`;
+                    }
+                }
+            }
+
+            if(consumoMensal === 0) {
+                html = "<p style='text-align:center; padding:20px;'>Nenhuma leitura encontrada para este mês.</p>";
+            } else {
+                html += `</table><h2 style="text-align:right; color:var(--azul); margin-top:20px;">Total do Mês: ${consumoMensal.toFixed(2)} m³</h2>`;
+            }
+
+            document.getElementById('modal-dados').innerHTML = html;
+            abrirModal('modal-lista');
+        } catch(e) {
+            console.error("Erro ao calcular consumo mensal:", e);
+            alert("Erro ao buscar dados na nuvem.");
+        }
+    }
+
     async function relatorioTodosDebitos() {
         const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
         const cobs = await r.json() || {};
@@ -762,6 +833,5 @@
 </script>
 </body>
 </html>
-
 
 
