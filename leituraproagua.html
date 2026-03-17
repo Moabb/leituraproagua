@@ -448,10 +448,10 @@
         atualizarLista().then(() => exibirCliente(id));
     }
 
-    function gerarPDF(cli, ant, atu, cons, total, vTarifa) {
+    function gerarPDF(cli, ant, atu, cons, total, vTarifa, dataBanco = null) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const hoje = new Date().toLocaleDateString('pt-BR');
+    const hoje = dataBanco ? dataBanco : new Date().toLocaleDateString('pt-BR');
     const venc = calcularDataVencimento();
 
     // --- CABEÇALHO ---
@@ -733,13 +733,44 @@
         const cobs = await r.json() || {};
         const p = document.getElementById('lista-pendentes');
         p.innerHTML = "";
+    
         for(let id in cobs) {
             if(cobs[id].id_cliente === idCli && !cobs[id].pago) {
-                p.innerHTML += `<div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; background:#fff;">
-                    <span>📅 ${cobs[id].data_leitura} | <b>R$ ${cobs[id].valor.toFixed(2)}</b></span>
-                    <button class="btn btn-laranja" onclick="darBaixa('${id}')">DAR BAIXA</button>
-                </div>`;
+                // Adicionado botão azul de imprimir ao lado do botão de dar baixa
+                p.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #eee; background:#fff;">
+                        <span>📅 ${cobs[id].data_leitura} | <b>R$ ${cobs[id].valor.toFixed(2)}</b></span>
+                        <div>
+                            <button class="btn btn-azul" style="padding:5px 10px; font-size:11px;" onclick="reimprimirHistorico('${id}')">IMPRIMIR</button>
+                            <button class="btn btn-laranja" style="padding:5px 10px; font-size:11px;" onclick="darBaixa('${id}')">DAR BAIXA</button>
+                        </div>
+                    </div>`;
             }
+        }
+    }
+
+    async function reimprimirHistorico(idCob) {
+        try {
+            const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${idCob}.json`);
+            const c = await r.json();
+
+            if (!c) return alert("Erro ao carregar dados.");
+
+            const cliente = clientes[c.id_cliente];
+
+            // Manda os dados exatamente como estão no banco para o PDF
+            gerarPDF(
+                cliente, 
+                c.leitura_anterior || 0, 
+                c.leitura_atual || 0, 
+                c.consumo || 0, 
+                c.valor || 0, 
+                c.valor_tarifa || 0,
+                c.data_leitura
+            );
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao gerar fatura antiga.");
         }
     }
 
@@ -833,5 +864,4 @@
 </script>
 </body>
 </html>
-
 
