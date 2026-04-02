@@ -17,7 +17,8 @@
         .client-list { flex-grow: 1; overflow-y: auto; padding: 10px; }
         .btn-cliente { width: 100%; text-align: left; padding: 12px; margin-bottom: 8px; border: 1px solid #eee; background: #f4f7f6; cursor: pointer; border-radius: 8px; font-size: 14px; }
         .btn-cliente:hover { background: #e3f2fd; border-color: var(--azul); }
-        .btn-cliente:active { background: #d8f0ff; border-color: var(--black); }
+        .btn-cliente.ativo {background-color: #dbeafb !important; border-left: 5px solid #1f538d; BORDER-TOP: 1PX SOLID; BORDER-BOTTOM: 1PX SOLID; BORDER-RIGHT: 1PX SOLID; font-weight: bold;
+}
 
         /* Main Content */
         .main { flex-grow: 1; display: flex; flex-direction: column; }
@@ -225,11 +226,29 @@
         for(let id in clientes) {
             const c = clientes[id];
             if((c.rua || "").toUpperCase().includes(b) || (c.nome || "").toUpperCase().includes(b)) {
-                lista.innerHTML += `<button class="btn-cliente" onclick="exibirCliente('${id}')">
+                // Mudamos o onclick para chamar a nossa nova função selecionarCliente
+                lista.innerHTML += `<button class="btn-cliente" id="btn-cli-${id}" onclick="selecionarCliente('${id}')">
                     <strong>${c.nome}</strong><br><small>${c.rua || 'S/R'}, ${c.numero || 'S/N'}</small>
                 </button>`;
             }
         }
+    }
+
+    // NOVA FUNÇÃO: Ela marca o botão e depois abre o cliente
+    function selecionarCliente(id) {
+        // 1. Remove a cor de selecionado de todos os clientes da lista
+        document.querySelectorAll('.btn-cliente').forEach(botao => {
+            botao.classList.remove('ativo');
+        });
+
+        // 2. Coloca a cor de selecionado no botão que acabou de ser clicado
+        const botaoClicado = document.getElementById(`btn-cli-${id}`);
+        if (botaoClicado) {
+            botaoClicado.classList.add('ativo');
+        }
+
+        // 3. Executa a função que você já tinha no sistema para mostrar os dados dele
+        exibirCliente(id);
     }
 
     // Função para o novo botão de definir o dia
@@ -865,4 +884,3 @@
 </script>
 </body>
 </html>
-
