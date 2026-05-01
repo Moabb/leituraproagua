@@ -618,44 +618,114 @@
 }
 
     async function verHistorico(idCli) {
-        const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
-        const cobs = await r.json() || {};
-        document.getElementById('modal-titulo').innerText = "HISTÓRICO: " + clientes[idCli].nome;
-        let html = "<table><tr><th>Data</th><th>Consumo</th><th>Valor</th><th>Status</th></tr>";
-        let lista = Object.values(cobs).filter(c => c.id_cliente === idCli).sort((a,b) => b.leitura_atual - a.leitura_atual);
-        lista.forEach(c => {
-            html += `<tr><td>${c.data_leitura}</td><td>${c.consumo} m³</td><td>R$ ${c.valor.toFixed(2)}</td><td>${c.pago?'✅ Pago':'❌ Aberto'}</td></tr>`;
+    const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
+    const cobs = await r.json() || {};
+    document.getElementById('modal-titulo').innerText = "HISTÓRICO: " + clientes[idCli].nome;
+    
+    // Adicionada a coluna "Ações"
+    let html = "<table><tr><th>Data</th><th>Leitura</th><th>Consumo</th><th>Valor</th><th>Status</th><th>Ações</th></tr>";
+    
+    let lista = Object.entries(cobs).filter(([key, c]) => c.id_cliente === idCli).sort((a,b) => b[1].leitura_atual - a[1].leitura_atual);
+    
+    lista.forEach(([id, c]) => {
+        html += `<tr>
+            <td>${c.data_leitura}</td>
+            <td>${c.leitura_atual} m³</td>
+            <td>${c.consumo} m³</td>
+            <td>R$ ${c.valor.toFixed(2)}</td>
+            <td>${c.pago ? '✅ Pago' : '❌ Aberto'}</td>
+            <td>
+                <button class="btn btn-laranja" style="padding: 2px 8px; font-size: 12px;" onclick="editarLeitura('${id}')">✏️ Editar</button>
+            </td>
+        </tr>`;
+    });
+    
+    document.getElementById('modal-dados').innerHTML = html + "</table>";
+    abrirModal('modal-lista');
+}
+
+    async function editarLeitura(idCob) {
+        // 1. Busca os dados da cobrança específica
+        const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${idCob}.json`);
+        const c = await r.json();
+        
+        if (!c) return alert("Erro ao carregar dados.");
+        if (c.pago) return alert("⚠️ Atenção: Esta conta já foi marcada como PAGA. Desmarque o pagamento antes de editar.");
+
+        // 2. Solicita a nova leitura
+        const novaLeitura = prompt(`Editando leitura de ${c.data_leitura}.\nLeitura anterior: ${c.leitura_anterior}\nDigite a nova Leitura Atual:`, c.leitura_atual);
+        
+        if (!novaLeitura) return; // Usuário cancelou
+
+        const atu = parseInt(novaLeitura);
+        if (isNaN(atu) || atu < c.leitura_anterior) {
+            return alert("Erro: Nova leitura inválida ou menor que a anterior!");
+        }
+
+        // 3. Recalcula valores baseados no cliente atual
+        const cliente = clientes[c.id_cliente];
+        let cons = atu - c.leitura_anterior;
+        let novoValor, novaTarifa;
+
+        if (cliente.usar_valor_fixo) {
+            novaTarifa = 0;
+            novoValor = valorFixoGlobal;
+        } else {
+            novaTarifa = cliente.isento_tarifa ? 0 : taxaFixa;
+            novoValor = (cons * precoM3) + novaTarifa;
+        }
+
+        // 4. Salva no Firebase
+        await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${idCob}.json`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                leitura_atual: atu,
+                consumo: cons,
+                valor: novoValor,
+                valor_tarifa: novaTarifa
+            })
         });
-        document.getElementById('modal-dados').innerHTML = html + "</table>";
-        abrirModal('modal-lista');
+
+        alert("Leitura corrigida com sucesso!");
+        
+        // 5. Atualiza o modal de histórico e a tela principal
+        verHistorico(c.id_cliente);
+        exibirCliente(c.id_cliente);
     }
 
     async function relatorioConsumoMensal() {
+        // 1. Pergunta ao usuário a quantidade de dias
+        let entrada = prompt("Quantos dias de relatório deseja visualizar?", "10");
+        if (!entrada) return; // Se o usuário cancelar, a função para aqui
+
+        let dias = parseInt(entrada);
+        if (isNaN(dias) || dias <= 0) return alert("Por favor, digite um número válido de dias.");
+
         try {
             const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
             const cobs = await r.json() || {};
             
+            // 2. Define o período dinâmico (hoje até [dias] atrás)
             const hoje = new Date();
-            const mesAtual = (hoje.getMonth() + 1).toString().padStart(2, '0');
-            const anoAtual = hoje.getFullYear().toString();
+            const dataLimite = new Date();
+            dataLimite.setDate(hoje.getDate() - dias);
             
-            let consumoMensal = 0;
-            document.getElementById('modal-titulo').innerText = `CONSUMO MENSAL (${mesAtual}/${anoAtual})`;
+            let consumoTotal = 0;
+            document.getElementById('modal-titulo').innerText = `CONSUMO - ÚLTIMOS ${dias} DIAS`;
             
             let html = "<table><tr><th>Morador</th><th>Data</th><th>Consumo</th></tr>";
-
+            
             for(let id in cobs) {
                 const c = cobs[id];
                 if(c && c.data_leitura && c.consumo) {
-                    // Extrai MM/AAAA da string "15/03/2024"
-                    const partes = c.data_leitura.split('/');
-                    const mesCob = partes[1];
-                    const anoCob = partes[2];
+                    // Converte a string "dd/mm/yyyy" para uma data comparável
+                    const [d, m, y] = c.data_leitura.split('/').map(Number);
+                    const dataCob = new Date(y, m - 1, d);
 
-                    // Filtra apenas se for o mês e ano corrente
-                    if(mesCob === mesAtual && anoCob === anoAtual) {
+                    // Verifica se a data da cobrança está dentro do período selecionado
+                    if(dataCob >= dataLimite && dataCob <= hoje) {
                         const valorConsumo = parseFloat(c.consumo);
-                        consumoMensal += valorConsumo;
+                        consumoTotal += valorConsumo;
                         
                         html += `<tr>
                             <td>${c.nome_cliente}</td>
@@ -666,16 +736,17 @@
                 }
             }
 
-            if(consumoMensal === 0) {
-                html = "<p style='text-align:center; padding:20px;'>Nenhuma leitura encontrada para este mês.</p>";
+            if(consumoTotal === 0) {
+                html = `<p style='text-align:center; padding:20px;'>Nenhuma leitura encontrada nos últimos ${dias} dias.</p>`;
             } else {
-                html += `</table><h2 style="text-align:right; color:var(--azul); margin-top:20px;">Total do Mês: ${consumoMensal.toFixed(2)} m³</h2>`;
+                html += `</table><h2 style="text-align:right; color:var(--azul); margin-top:20px;">Total (${dias} dias): ${consumoTotal.toFixed(2)} m³</h2>`;
             }
 
             document.getElementById('modal-dados').innerHTML = html;
             abrirModal('modal-lista');
+            
         } catch(e) {
-            console.error("Erro ao calcular consumo mensal:", e);
+            console.error("Erro ao calcular consumo:", e);
             alert("Erro ao buscar dados na nuvem.");
         }
     }
