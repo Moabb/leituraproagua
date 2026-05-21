@@ -636,6 +636,7 @@
             <td>${c.pago ? '✅ Pago' : '❌ Aberto'}</td>
             <td>
                 <button class="btn btn-laranja" style="padding: 2px 8px; font-size: 12px;" onclick="editarLeitura('${id}')">✏️ Editar</button>
+                <button class="btn btn-vermelho" style="padding: 2px 8px; font-size: 12px; margin-left: 5px;" onclick="excluirLeitura('${id}')">🗑️ Excluir</button>
             </td>
         </tr>`;
     });
@@ -691,6 +692,55 @@
         // 5. Atualiza o modal de histórico e a tela principal
         verHistorico(c.id_cliente);
         exibirCliente(c.id_cliente);
+    }
+
+    async function excluirLeitura(idCob) {
+        // 1. Busca os dados da cobrança para saber quem é o cliente
+        const r = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${idCob}.json`);
+        const c = await r.json();
+        
+        if (!c) return alert("Erro ao carregar dados da leitura.");
+        
+        const idCliente = c.id_cliente;
+
+        // 2. Confirmação de segurança dupla antes de apagar
+        if (confirm(`⚠️ ATENÇÃO: Deseja realmente apagar a leitura do dia ${c.data_leitura} (Consumo: ${c.consumo} m³)?`)) {
+            if (confirm("Esta ação apagará permanentemente este registro financeiro. Tem certeza?")) {
+                
+                // 3. Executa a exclusão da cobrança no Firebase
+                await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas/${idCob}.json`, {
+                    method: 'DELETE'
+                });
+
+                // 4. --- RECALCULO AUTOMÁTICO DA LEITURA ANTERIOR ---
+                // Busca todas as cobranças restantes para descobrir qual passou a ser a maior leitura agora
+                const respCobs = await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/cobrancas.json`);
+                const todasCobs = await respCobs.json() || {};
+                
+                // Filtra as cobranças que sobraram deste mesmo cliente
+                let listaRestante = Object.values(todasCobs).filter(cb => cb && String(cb.id_cliente) === String(idCliente));
+                
+                let novaLeituraAtualCliente = 0;
+                
+                if (listaRestante.length > 0) {
+                    // Ordena para pegar a maior leitura atual que sobrou
+                    listaRestante.sort((a, b) => Number(b.leitura_atual) - Number(a.leitura_atual));
+                    novaLeituraAtualCliente = Number(listaRestante[0].leitura_atual);
+                }
+
+                // 5. Atualiza o cadastro do cliente com o novo topo correto (reduzindo o valor se necessário)
+                await fetch(`${URL_FB}/dados_clientes/${ID_MAQUINA}/clientes/${idCliente}.json`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ leitura_atual: novaLeituraAtualCliente })
+                });
+                
+                alert("Leitura removida e histórico do cliente recalculado com sucesso!");
+                
+                // 6. Atualiza os modais e o painel de lançamento na tela principal
+                verHistorico(idCliente);
+                atualizarLista().then(() => exibirCliente(idCliente));
+            }
+        }
     }
 
     async function relatorioConsumoMensal() {
