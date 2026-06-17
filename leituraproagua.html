@@ -250,33 +250,77 @@
         exibirCliente(id);
     }
 
-    // Função para o novo botão de definir o dia
+    // Função para o novo botão de definir o dia e mês (mudanças pontuais)
     function definirDiaVencimento() {
-        let d = prompt("Digite o DIA fixo para vencimento das faturas (1 a 28):", diaVencimento);
-        if (d && d > 0 && d <= 31) {
-            fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {
-                method: 'PATCH',
-                body: JSON.stringify({ dia_vencimento: parseInt(d) })
-            }).then(() => {
-                diaVencimento = parseInt(d);
-                alert("Dia de vencimento atualizado para todo dia " + diaVencimento);
-            });
+        let agora = new Date();
+        let mesAtual = agora.getMonth() + 1; // Janeiro é 0
+        
+        let entrada = prompt(
+            `CONFIGURAÇÃO DE VENCIMENTO\n\n` +
+            `Para mudar apenas o DIA padrão, digite o dia (ex: 10).\n` +
+            `Para uma alteração pontual de DIA e MÊS, digite no formato DIA/MÊS (ex: 15/${mesAtual.toString().padStart(2, '0')}).\n\n` +
+            `Valor atual configurado:`, 
+            diaVencimento
+        );
+
+        if (entrada) {
+            if (entrada.includes('/')) {
+                // Se o usuário digitou DIA/MÊS (Mudança pontual)
+                let partes = entrada.split('/');
+                let d = parseInt(partes[0]);
+                let m = parseInt(partes[1]);
+
+                if (d > 0 && d <= 31 && m > 0 && m <= 12) {
+                    diaVencimento = d;
+                    // Armazena temporariamente o mês selecionado na sessão para ser usado na próxima fatura gerada
+                    sessionStorage.setItem('mes_vencimento_pontual', m);
+                    alert(`Vencimento alterado pontualmente para o dia ${d.toString().padStart(2, '0')}/${m.toString().padStart(2, '0')}`);
+                } else {
+                    alert("Erro: Dia (1 a 31) ou Mês (1 a 12) inválido!");
+                }
+            } else {
+                // Se digitou apenas o dia (Mantém o comportamento padrão original do sistema)
+                let d = parseInt(entrada);
+                if (d > 0 && d <= 31) {
+                    fetch(`${URL_FB}/licencas/${ID_MAQUINA}.json`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ dia_vencimento: d })
+                    }).then(() => {
+                        diaVencimento = d;
+                        sessionStorage.removeItem('mes_vencimento_pontual'); // Limpa alteração pontual de mês
+                        alert("Dia de vencimento atualizado para todo dia " + diaVencimento);
+                    });
+                } else {
+                    alert("Erro: Dia inválido!");
+                }
+            }
         }
     }
 
-    // Função auxiliar para calcular a data de vencimento (Mês atual ou próximo)
+    // Função auxiliar para calcular a data de vencimento (Mês atual, próximo ou escolha pontual)
     function calcularDataVencimento() {
         let agora = new Date();
-        let mes = agora.getMonth() + 1; // Janeiro é 0
         let ano = agora.getFullYear();
+        let mes;
 
-        // Se hoje for dia 20 e o vencimento for dia 10, vence no mês que vem.
-        // Se hoje for dia 05 e o vencimento for dia 10, vence neste mês ainda.
-        if (agora.getDate() > diaVencimento) {
-            mes++;
-            if (mes > 12) {
-                mes = 1;
+        // Verifica se existe uma escolha pontual de mês na sessão atual
+        let mesPontual = sessionStorage.getItem('mes_vencimento_pontual');
+
+        if (mesPontual) {
+            mes = parseInt(mesPontual);
+            // Se o mês escolhido for menor que o atual, assume-se que é para o próximo ano
+            if (mes < (agora.getMonth() + 1)) {
                 ano++;
+            }
+        } else {
+            // --- LOGICA ORIGINAL DO SEU SISTEMA (INTOCADA) ---
+            mes = agora.getMonth() + 1; // Janeiro é 0
+            if (agora.getDate() > diaVencimento) {
+                mes++;
+                if (mes > 12) {
+                    mes = 1;
+                    ano++;
+                }
             }
         }
 
