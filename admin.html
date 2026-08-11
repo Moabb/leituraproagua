@@ -145,7 +145,6 @@
         }
 
         async function carregarDados() {
-            // Agora usamos o SDK do Firebase em vez de Fetch para garantir a autenticação automática
             db.ref('licencas').on('value', (snapshot) => {
                 const dados = snapshot.val();
                 const corpo = document.getElementById('tabela-corpo');
@@ -166,7 +165,7 @@
                 for (let nomeCliente in grupos) {
                     corpo.innerHTML += `<tr style="background-color: #f1f1f1;"><td colspan="5"><strong>📁 CLIENTE: ${nomeCliente}</strong></td></tr>`;
                     grupos[nomeCliente].forEach(item => {
-                        const ativo = item.ativo === true;
+                        let ativo = item.ativo === true;
                         let alerta = "";
                         let estiloLinha = "";
                         
@@ -174,9 +173,17 @@
                             const p = item.expiracao.split("/");
                             const dExp = new Date(p[2], p[1]-1, p[0]);
                             const diffDias = Math.ceil((dExp - hoje) / (1000 * 60 * 60 * 24));
+                            
+                            // SE A DATA JÁ PASSOU E O STATUS AINDA CONSTA COMO ATIVO:
                             if (diffDias < 0) {
                                 alerta = '<br><small style="color:red"><b>EXPIRADA</b></small>';
                                 estiloLinha = "background-color: #ffebee;";
+                                
+                                if (ativo) {
+                                    ativo = false;
+                                    // Atualiza o Firebase automaticamente para bloquear o acesso
+                                    db.ref('licencas/' + item.id_dispositivo).update({ ativo: false });
+                                }
                             } else if (diffDias <= 10) {
                                 alerta = `<br><small style="color:#856404"><b>VENCE EM ${diffDias} DIAS</b></small>`;
                                 estiloLinha = "background-color: #fff3cd;";
